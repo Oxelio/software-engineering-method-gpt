@@ -2,7 +2,12 @@
 from pathlib import Path
 import sys, yaml
 
-path = Path(__file__).resolve().parents[1] / "openapi" / "github-repository-orchestrator.openapi.yaml"
+path = (
+    Path(__file__).resolve().parents[1]
+    / "actions"
+    / "github"
+    / "openapi.yaml"
+)
 spec = yaml.safe_load(path.read_text(encoding="utf-8"))
 errors=[]
 if spec.get("openapi") != "3.1.0": errors.append("openapi must be 3.1.0")
