@@ -1,0 +1,1641 @@
+openapi: 3.1.0
+info:
+  title: GitHub Repository Orchestrator API
+  description: GitHub REST and bounded Projects v2 GraphQL integration for a Custom GPT. Supports repository discovery/creation, branches, files, issues, pull requests,
+    native Sub-issues, organization Issue Field metadata, and an allowlist of Projects v2 operations. Destructive repository operations, pull-request merge, and arbitrary
+    GraphQL are not exposed. Tool Capability != Operational Permission != Role Authority.
+  version: 2.1.0
+servers:
+- url: https://api.github.com
+  description: GitHub API
+paths:
+  /user:
+    get:
+      operationId: getCurrentUser
+      summary: Get the authenticated GitHub user
+      responses:
+        '200':
+          description: Authenticated GitHub user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Authentication required
+  /user/repos:
+    get:
+      operationId: listRepositories
+      summary: List repositories accessible to the authenticated user
+      parameters:
+      - name: visibility
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - all
+          - public
+          - private
+          default: all
+      - name: affiliation
+        in: query
+        required: false
+        schema:
+          type: string
+          default: owner,collaborator,organization_member
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - created
+          - updated
+          - pushed
+          - full_name
+          default: updated
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Repositories accessible to the authenticated user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Repository'
+        '401':
+          description: Authentication required
+    post:
+      operationId: createRepository
+      summary: Create a repository for the authenticated user
+      description: Create a repository. This is a structural mutation; tool availability does not imply workflow authorization. Repository deletion is intentionally
+        not exposed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRepositoryRequest'
+      responses:
+        '201':
+          description: Repository created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Repository'
+        '401':
+          description: Authentication required
+        '403':
+          description: Forbidden
+        '422':
+          description: Validation failed or secondary rate limit
+  /repos/{owner}/{repo}:
+    get:
+      operationId: getRepository
+      summary: Get repository information
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Repository information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Repository'
+        '404':
+          description: Repository not found or inaccessible
+  /repos/{owner}/{repo}/contents:
+    get:
+      operationId: getRepositoryRoot
+      summary: List the root directory of a repository
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: ref
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Repository root contents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentEntry'
+        '404':
+          description: Repository or reference not found
+  /repos/{owner}/{repo}/contents/{path}:
+    get:
+      operationId: getRepositoryContent
+      summary: Read a repository file or list a directory
+      description: Read a file or list a directory. File content is normally Base64 encoded. Use ref to select the branch, tag, or commit to inspect.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: ref
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: File or directory contents
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/FileContent'
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/ContentEntry'
+        '404':
+          description: File, directory, repository, or reference not found
+    put:
+      operationId: createOrUpdateRepositoryFile
+      summary: Create or update a file on an explicit branch
+      description: Create or replace a file on an explicit branch. Content must be Base64 encoded. When updating a file, provide its current blob SHA.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+                content:
+                  type: string
+                  minLength: 1
+                sha:
+                  type: string
+                branch:
+                  type: string
+                  minLength: 1
+              required:
+              - message
+              - content
+              - branch
+      responses:
+        '200':
+          description: File updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentMutationResult'
+        '201':
+          description: File created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentMutationResult'
+        '404':
+          description: Repository, branch, or file not found
+        '409':
+          description: Conflict, typically stale SHA or concurrent update
+        '422':
+          description: Validation failed
+  /repos/{owner}/{repo}/git/ref/{ref}:
+    get:
+      operationId: getGitReference
+      summary: Get a Git branch or tag reference
+      description: For a branch, use heads/<branch>. The returned object.sha can be used as the base commit when creating another branch.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: ref
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Git reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitReference'
+        '404':
+          description: Reference not found
+        '409':
+          description: Conflict
+  /repos/{owner}/{repo}/git/refs:
+    post:
+      operationId: createGitReference
+      summary: Create a Git branch reference
+      description: Create a branch reference from an existing commit SHA. The ref is restricted to refs/heads/* and cannot create tags.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                ref:
+                  type: string
+                  pattern: ^refs/heads/.+
+                sha:
+                  type: string
+                  minLength: 40
+                  maxLength: 64
+              required:
+              - ref
+              - sha
+      responses:
+        '201':
+          description: Reference created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitReference'
+        '409':
+          description: Conflict
+        '422':
+          description: Validation failed or reference already exists
+  /repos/{owner}/{repo}/issues:
+    get:
+      operationId: listIssues
+      summary: List repository issues
+      description: GitHub's Issues API may also return pull requests. Entries containing pull_request represent pull requests.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: state
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - open
+          - closed
+          - all
+          default: open
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - created
+          - updated
+          - comments
+          default: created
+      - name: direction
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+          default: desc
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Repository issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Issue'
+        '404':
+          description: Repository not found or inaccessible
+    post:
+      operationId: createIssue
+      summary: Create a repository issue
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                body:
+                  type: string
+                labels:
+                  type: array
+                  items:
+                    type: string
+                assignees:
+                  type: array
+                  items:
+                    type: string
+                milestone:
+                  type: integer
+              required:
+              - title
+      responses:
+        '201':
+          description: Issue created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+        '403':
+          description: Forbidden
+        '410':
+          description: Issues are disabled for the repository
+        '422':
+          description: Validation failed or secondary rate limit
+  /repos/{owner}/{repo}/issues/{issue_number}:
+    get:
+      operationId: getIssue
+      summary: Get a specific issue
+      description: The returned node_id can be used directly as a Projects v2 contentId.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: issue_number
+        in: path
+        required: true
+        description: Issue number.
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: Issue details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+        '404':
+          description: Issue or repository not found
+    patch:
+      operationId: updateIssue
+      summary: Update an issue or its workflow metadata
+      description: Update issue content or workflow metadata. Do not silently change authoritative product requirements without user authorization.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: issue_number
+        in: path
+        required: true
+        description: Issue number.
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title:
+                  type: string
+                body:
+                  type: string
+                state:
+                  type: string
+                  enum:
+                  - open
+                  - closed
+                state_reason:
+                  type: string
+                  enum:
+                  - completed
+                  - not_planned
+                  - reopened
+                labels:
+                  type: array
+                  items:
+                    type: string
+                assignees:
+                  type: array
+                  items:
+                    type: string
+                milestone:
+                  type: integer
+      responses:
+        '200':
+          description: Issue updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+        '403':
+          description: Forbidden
+        '404':
+          description: Issue or repository not found
+        '422':
+          description: Validation failed
+  /repos/{owner}/{repo}/issues/{issue_number}/parent:
+    get:
+      operationId: getParentIssue
+      summary: Get the parent issue of a sub-issue
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: issue_number
+        in: path
+        required: true
+        description: Issue number.
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: Parent issue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+        '404':
+          description: Issue or parent not found
+        '410':
+          description: Gone
+  /repos/{owner}/{repo}/issues/{issue_number}/sub_issues:
+    get:
+      operationId: listSubIssues
+      summary: List sub-issues of an issue
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: issue_number
+        in: path
+        required: true
+        description: Issue number.
+        schema:
+          type: integer
+          minimum: 1
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Sub-issues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Issue'
+        '404':
+          description: Issue or repository not found
+    post:
+      operationId: addSubIssue
+      summary: Add a sub-issue relation
+      description: Use GitHub native sub-issue relationships. Do not simulate this by writing Project fields.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: issue_number
+        in: path
+        required: true
+        description: Issue number.
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSubIssueRequest'
+      responses:
+        '201':
+          description: Sub-issue added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+        '403':
+          description: Forbidden
+        '404':
+          description: Issue or repository not found
+        '410':
+          description: Gone
+        '422':
+          description: Validation failed or secondary rate limit
+  /repos/{owner}/{repo}/issues/{issue_number}/sub_issue:
+    delete:
+      operationId: removeSubIssue
+      summary: Remove a sub-issue relation
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: issue_number
+        in: path
+        required: true
+        description: Issue number.
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveSubIssueRequest'
+      responses:
+        '200':
+          description: Sub-issue relation removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Issue'
+        '400':
+          description: Bad request
+        '404':
+          description: Issue or repository not found
+  /repos/{owner}/{repo}/pulls:
+    get:
+      operationId: listPullRequests
+      summary: List repository pull requests
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: state
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - open
+          - closed
+          - all
+          default: open
+      - name: head
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: base
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - created
+          - updated
+          - popularity
+          - long-running
+          default: created
+      - name: direction
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+          default: desc
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Repository pull requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PullRequest'
+        '404':
+          description: Repository not found or inaccessible
+    post:
+      operationId: createPullRequest
+      summary: Create a pull request
+      description: Open a PR from head into base. Prefer draft=true until implementation and validation are ready for human review. Merge is not exposed.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                head:
+                  type: string
+                  minLength: 1
+                base:
+                  type: string
+                  minLength: 1
+                body:
+                  type: string
+                draft:
+                  type: boolean
+                  default: true
+                maintainer_can_modify:
+                  type: boolean
+                  default: true
+              required:
+              - title
+              - head
+              - base
+      responses:
+        '201':
+          description: Pull request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequest'
+        '403':
+          description: Forbidden
+        '422':
+          description: Validation failed or secondary rate limit
+  /repos/{owner}/{repo}/pulls/{pull_number}:
+    get:
+      operationId: getPullRequest
+      summary: Get a specific pull request
+      description: The returned node_id can be used directly as a Projects v2 contentId.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: pull_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: Pull request details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequest'
+        '404':
+          description: Pull request or repository not found
+    patch:
+      operationId: updatePullRequest
+      summary: Update a pull request
+      description: Update pull request metadata or state. Merge is not exposed. Close a pull request only when explicitly authorized.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: pull_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title:
+                  type: string
+                body:
+                  type: string
+                state:
+                  type: string
+                  enum:
+                  - open
+                  - closed
+                base:
+                  type: string
+                maintainer_can_modify:
+                  type: boolean
+      responses:
+        '200':
+          description: Pull request updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequest'
+        '403':
+          description: Forbidden
+        '422':
+          description: Validation failed
+  /repos/{owner}/{repo}/pulls/{pull_number}/files:
+    get:
+      operationId: getPullRequestFiles
+      summary: List files changed by a pull request
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: pull_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 100
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Files changed by the pull request
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PullRequestFile'
+        '404':
+          description: Pull request or repository not found
+  /orgs/{org}/issue-fields:
+    get:
+      operationId: listOrganizationIssueFields
+      summary: List organization issue fields and their options
+      description: Read-only metadata for organization-level Issue Fields. Kept separate from Projects v2 custom fields.
+      parameters:
+      - name: org
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Organization issue fields
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationIssueField'
+        '403':
+          description: Forbidden
+        '404':
+          description: Organization not found or feature inaccessible
+  /graphql:
+    post:
+      operationId: executeAllowedProjectV2Operation
+      summary: Execute an allowlisted GitHub Projects v2 operation
+      description: Execute one predefined Projects v2 GraphQL query or mutation. Arbitrary GraphQL is intentionally not exposed. Tool capability does not imply operational
+        permission or role authority.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphQLRequest'
+      responses:
+        '200':
+          description: GraphQL response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLResponse'
+        '401':
+          description: Authentication or permission error
+        '403':
+          description: Forbidden
+components:
+  schemas:
+    User:
+      type: object
+      additionalProperties: true
+      properties:
+        login:
+          type: string
+        id:
+          type: integer
+        node_id:
+          type: string
+        name:
+          type: string
+        html_url:
+          type: string
+        avatar_url:
+          type: string
+    Repository:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        name:
+          type: string
+        full_name:
+          type: string
+        private:
+          type: boolean
+        description:
+          type:
+          - string
+          - 'null'
+        default_branch:
+          type: string
+        html_url:
+          type: string
+        language:
+          type:
+          - string
+          - 'null'
+        updated_at:
+          type: string
+        pushed_at:
+          type:
+          - string
+          - 'null'
+    ContentEntry:
+      type: object
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        path:
+          type: string
+        sha:
+          type: string
+        size:
+          type: integer
+        url:
+          type: string
+        html_url:
+          type: string
+        download_url:
+          type:
+          - string
+          - 'null'
+    FileContent:
+      allOf:
+      - $ref: '#/components/schemas/ContentEntry'
+      - type: object
+        additionalProperties: true
+        properties:
+          encoding:
+            type: string
+          content:
+            type: string
+            description: Base64 encoded content when returned by GitHub.
+    ContentMutationResult:
+      type: object
+      additionalProperties: true
+      properties:
+        content:
+          $ref: '#/components/schemas/ContentEntry'
+        commit:
+          type: object
+          additionalProperties: true
+          properties:
+            sha:
+              type: string
+            html_url:
+              type: string
+    GitReference:
+      type: object
+      additionalProperties: true
+      properties:
+        ref:
+          type: string
+        node_id:
+          type: string
+        url:
+          type: string
+        object:
+          type: object
+          additionalProperties: true
+          properties:
+            type:
+              type: string
+            sha:
+              type: string
+            url:
+              type: string
+    IssuePullRequestReference:
+      type: object
+      additionalProperties: true
+      properties:
+        url:
+          type: string
+        html_url:
+          type: string
+        diff_url:
+          type: string
+        patch_url:
+          type: string
+        merged_at:
+          type:
+          - string
+          - 'null'
+    Issue:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+          description: GraphQL node ID; usable as a ProjectV2 contentId.
+        number:
+          type: integer
+        title:
+          type: string
+        state:
+          type: string
+        state_reason:
+          type:
+          - string
+          - 'null'
+        body:
+          type:
+          - string
+          - 'null'
+        html_url:
+          type: string
+        repository_url:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        closed_at:
+          type:
+          - string
+          - 'null'
+        pull_request:
+          $ref: '#/components/schemas/IssuePullRequestReference'
+    PullRequestBranch:
+      type: object
+      additionalProperties: true
+      properties:
+        label:
+          type: string
+        ref:
+          type: string
+        sha:
+          type: string
+    PullRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+          description: GraphQL node ID; usable as a ProjectV2 contentId.
+        number:
+          type: integer
+        title:
+          type: string
+        state:
+          type: string
+        body:
+          type:
+          - string
+          - 'null'
+        html_url:
+          type: string
+        draft:
+          type: boolean
+        merged:
+          type: boolean
+        mergeable:
+          type:
+          - boolean
+          - 'null'
+        mergeable_state:
+          type: string
+        commits:
+          type: integer
+        additions:
+          type: integer
+        deletions:
+          type: integer
+        changed_files:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        merged_at:
+          type:
+          - string
+          - 'null'
+        head:
+          $ref: '#/components/schemas/PullRequestBranch'
+        base:
+          $ref: '#/components/schemas/PullRequestBranch'
+    PullRequestFile:
+      type: object
+      additionalProperties: true
+      properties:
+        sha:
+          type: string
+        filename:
+          type: string
+        status:
+          type: string
+        additions:
+          type: integer
+        deletions:
+          type: integer
+        changes:
+          type: integer
+        blob_url:
+          type: string
+        raw_url:
+          type: string
+        contents_url:
+          type: string
+        patch:
+          type:
+          - string
+          - 'null'
+    AddSubIssueRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        sub_issue_id:
+          type: integer
+          minimum: 1
+          description: Numeric database ID of the child issue.
+        replace_parent:
+          type: boolean
+          default: false
+          description: When true, replace the child issue current parent.
+      required:
+      - sub_issue_id
+    RemoveSubIssueRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        sub_issue_id:
+          type: integer
+          minimum: 1
+          description: Numeric database ID of the child issue.
+      required:
+      - sub_issue_id
+    CreateRepositoryRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        homepage:
+          type: string
+        private:
+          type: boolean
+          default: true
+        has_issues:
+          type: boolean
+          default: true
+        has_projects:
+          type: boolean
+          default: true
+        has_wiki:
+          type: boolean
+          default: false
+        is_template:
+          type: boolean
+          default: false
+        auto_init:
+          type: boolean
+          default: true
+      required:
+      - name
+    IssueFieldOption:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        name:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        color:
+          type: string
+    OrganizationIssueField:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        name:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        data_type:
+          type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssueFieldOption'
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    ProjectV2FieldValueInput:
+      type: object
+      additionalProperties: false
+      properties:
+        text:
+          type: string
+        number:
+          type: number
+        date:
+          type: string
+          format: date
+        singleSelectOptionId:
+          type: string
+        multiSelectOptionIds:
+          type: array
+          items:
+            type: string
+        iterationId:
+          type: string
+    ProjectV2SelectOptionInput:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+      required:
+      - name
+      - description
+      - color
+    ProjectV2IterationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+        startDate:
+          type: string
+          format: date
+        duration:
+          type: integer
+          minimum: 1
+      required:
+      - title
+      - startDate
+      - duration
+    ProjectV2IterationConfigurationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        startDate:
+          type: string
+          format: date
+        duration:
+          type: integer
+          minimum: 1
+        iterations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectV2IterationInput'
+      required:
+      - startDate
+      - duration
+      - iterations
+    GraphQLVariables:
+      type: object
+      additionalProperties: false
+      properties:
+        login:
+          type: string
+        number:
+          type: integer
+          minimum: 1
+        projectId:
+          type: string
+        contentId:
+          type: string
+        itemId:
+          type: string
+        fieldId:
+          type: string
+        text:
+          type: string
+        optionId:
+          type: string
+        iterationId:
+          type: string
+        first:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 100
+        after:
+          type:
+          - string
+          - 'null'
+        search:
+          type:
+          - string
+          - 'null'
+        name:
+          type: string
+        dataType:
+          type: string
+          enum:
+          - DATE
+          - ITERATION
+          - MULTI_SELECT
+          - NUMBER
+          - SINGLE_SELECT
+          - TEXT
+        singleSelectOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectV2SelectOptionInput'
+        multiSelectOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectV2SelectOptionInput'
+        iterationConfiguration:
+          $ref: '#/components/schemas/ProjectV2IterationConfigurationInput'
+        value:
+          $ref: '#/components/schemas/ProjectV2FieldValueInput'
+    GraphQLRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        query:
+          type: string
+          description: Exact allowlisted GitHub GraphQL operation.
+          enum:
+          - query($login:String!,$number:Int!){organization(login:$login){projectV2(number:$number){id title}}}
+          - query($login:String!,$number:Int!){user(login:$login){projectV2(number:$number){id title}}}
+          - query($projectId:ID!){node(id:$projectId){... on ProjectV2{fields(first:100){nodes{... on ProjectV2FieldCommon{id name} ... on ProjectV2SingleSelectField{id
+            name options{id name}} ... on ProjectV2IterationField{id name configuration{iterations{startDate id}}}}}}}}
+          - mutation($projectId:ID!,$contentId:ID!){addProjectV2ItemById(input:{projectId:$projectId,contentId:$contentId}){item{id}}}
+          - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$text:String!){updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:{text:$text}}){projectV2Item{id}}}
+          - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$optionId:String!){updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:{singleSelectOptionId:$optionId}}){projectV2Item{id}}}
+          - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$iterationId:String!){updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:{iterationId:$iterationId}}){projectV2Item{id}}}
+          - query($login:String!,$first:Int!,$after:String,$search:String){organization(login:$login){projectsV2(first:$first,after:$after,query:$search){nodes{id
+            number title shortDescription closed public url owner{... on Organization{login} ... on User{login}}}pageInfo{hasNextPage endCursor}totalCount}}}
+          - query($login:String!,$first:Int!,$after:String,$search:String){user(login:$login){projectsV2(first:$first,after:$after,query:$search){nodes{id number
+            title shortDescription closed public url owner{... on Organization{login} ... on User{login}}}pageInfo{hasNextPage endCursor}totalCount}}}
+          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on ProjectV2{fields(first:$first,after:$after,orderBy:{field:POSITION,direction:ASC}){nodes{__typename
+            ... on ProjectV2FieldCommon{id name dataType} ... on ProjectV2SingleSelectField{options{id name description color}} ... on ProjectV2MultiSelectField{multiSelectOptions{id
+            name description color}} ... on ProjectV2IterationField{configuration{duration startDay iterations{id title startDate duration} completedIterations{id
+            title startDate duration}}}}pageInfo{hasNextPage endCursor}totalCount}}}}
+          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on ProjectV2{items(first:$first,after:$after){nodes{id type isArchived content{...
+            on Issue{id number title state url repository{nameWithOwner}} ... on PullRequest{id number title state url repository{nameWithOwner}} ... on DraftIssue{id
+            title body}} fieldValues(first:100){nodes{__typename ... on ProjectV2ItemFieldTextValue{field{... on ProjectV2FieldCommon{id name dataType}} text} ...
+            on ProjectV2ItemFieldNumberValue{field{... on ProjectV2FieldCommon{id name dataType}} number} ... on ProjectV2ItemFieldDateValue{field{... on ProjectV2FieldCommon{id
+            name dataType}} date} ... on ProjectV2ItemFieldSingleSelectValue{field{... on ProjectV2FieldCommon{id name dataType}} optionId name color description}
+            ... on ProjectV2ItemFieldMultiSelectValue{field{... on ProjectV2FieldCommon{id name dataType}} value options{id name description color}} ... on ProjectV2ItemFieldIterationValue{field{...
+            on ProjectV2FieldCommon{id name dataType}} iterationId title startDate duration} ... on ProjectV2ItemFieldLabelValue{field{... on ProjectV2FieldCommon{id
+            name dataType}} labels(first:100){nodes{id name}}} ... on ProjectV2ItemFieldMilestoneValue{field{... on ProjectV2FieldCommon{id name dataType}} milestone{id
+            number title}} ... on ProjectV2ItemFieldRepositoryValue{field{... on ProjectV2FieldCommon{id name dataType}} repository{id nameWithOwner}} ... on ProjectV2ItemFieldUserValue{field{...
+            on ProjectV2FieldCommon{id name dataType}} users(first:100){nodes{id login}}} ... on ProjectV2ItemFieldPullRequestValue{field{... on ProjectV2FieldCommon{id
+            name dataType}} pullRequests(first:100){nodes{id number title url}}} ... on ProjectV2ItemIssueFieldValue{field{... on ProjectV2FieldCommon{id name dataType}}
+            issueFieldValue{__typename ... on IssueFieldDateValue{value} ... on IssueFieldMultiSelectValue{value options{id name color description}} ... on IssueFieldNumberValue{value}
+            ... on IssueFieldSingleSelectValue{optionId name value color description} ... on IssueFieldTextValue{value}}}}}}pageInfo{hasNextPage endCursor}totalCount}}}}
+          - query($itemId:ID!,$first:Int!,$after:String){node(id:$itemId){... on ProjectV2Item{fieldValues(first:$first,after:$after){nodes{__typename ... on ProjectV2ItemFieldTextValue{field{...
+            on ProjectV2FieldCommon{id name dataType}} text} ... on ProjectV2ItemFieldNumberValue{field{... on ProjectV2FieldCommon{id name dataType}} number} ...
+            on ProjectV2ItemFieldDateValue{field{... on ProjectV2FieldCommon{id name dataType}} date} ... on ProjectV2ItemFieldSingleSelectValue{field{... on ProjectV2FieldCommon{id
+            name dataType}} optionId name color description} ... on ProjectV2ItemFieldMultiSelectValue{field{... on ProjectV2FieldCommon{id name dataType}} value
+            options{id name description color}} ... on ProjectV2ItemFieldIterationValue{field{... on ProjectV2FieldCommon{id name dataType}} iterationId title startDate
+            duration} ... on ProjectV2ItemFieldLabelValue{field{... on ProjectV2FieldCommon{id name dataType}} labels(first:100){nodes{id name}}} ... on ProjectV2ItemFieldMilestoneValue{field{...
+            on ProjectV2FieldCommon{id name dataType}} milestone{id number title}} ... on ProjectV2ItemFieldRepositoryValue{field{... on ProjectV2FieldCommon{id name
+            dataType}} repository{id nameWithOwner}} ... on ProjectV2ItemFieldUserValue{field{... on ProjectV2FieldCommon{id name dataType}} users(first:100){nodes{id
+            login}}} ... on ProjectV2ItemFieldPullRequestValue{field{... on ProjectV2FieldCommon{id name dataType}} pullRequests(first:100){nodes{id number title
+            url}}} ... on ProjectV2ItemIssueFieldValue{field{... on ProjectV2FieldCommon{id name dataType}} issueFieldValue{__typename ... on IssueFieldDateValue{value}
+            ... on IssueFieldMultiSelectValue{value options{id name color description}} ... on IssueFieldNumberValue{value} ... on IssueFieldSingleSelectValue{optionId
+            name value color description} ... on IssueFieldTextValue{value}}}}pageInfo{hasNextPage endCursor}totalCount}}}}
+          - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$value:ProjectV2FieldValue!){updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:$value}){projectV2Item{id}}}
+          - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!){clearProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId}){projectV2Item{id}}}
+          - mutation($projectId:ID!,$itemId:ID!){deleteProjectV2Item(input:{projectId:$projectId,itemId:$itemId}){deletedItemId}}
+          - mutation($projectId:ID!,$name:String!,$dataType:ProjectV2CustomFieldType!,$singleSelectOptions:[ProjectV2SingleSelectFieldOptionInput!],$multiSelectOptions:[ProjectV2MultiSelectFieldOptionInput!],$iterationConfiguration:ProjectV2IterationFieldConfigurationInput){createProjectV2Field(input:{projectId:$projectId,name:$name,dataType:$dataType,singleSelectOptions:$singleSelectOptions,multiSelectOptions:$multiSelectOptions,iterationConfiguration:$iterationConfiguration}){projectV2Field{__typename
+            ... on ProjectV2FieldCommon{id name dataType} ... on ProjectV2SingleSelectField{options{id name description color}} ... on ProjectV2MultiSelectField{multiSelectOptions{id
+            name description color}} ... on ProjectV2IterationField{configuration{duration startDay iterations{id title startDate duration}}}}}}
+          - mutation($fieldId:ID!){deleteProjectV2Field(input:{fieldId:$fieldId}){projectV2Field{__typename ... on ProjectV2FieldCommon{id name dataType}}}}
+          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on ProjectV2{views(first:$first,after:$after){nodes{id number name layout filter
+            configuration{visibleFields(first:100){nodes{... on ProjectV2FieldCommon{id name dataType}}}}}pageInfo{hasNextPage endCursor}totalCount}}}}
+        variables:
+          $ref: '#/components/schemas/GraphQLVariables'
+      required:
+      - query
+      - variables
+    GraphQLError:
+      type: object
+      additionalProperties: true
+      properties:
+        message:
+          type: string
+        type:
+          type: string
+    GraphQLResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        data:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphQLError'
