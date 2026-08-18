@@ -1,4 +1,22 @@
+# IDEs
 .idea/
 .vscode/
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+.venv/
+venv/
+
+# Local environment
+.env
+.env.*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Generated Knowledge is intentionally versioned.
+# Do not ignore knowledge/generated/.
