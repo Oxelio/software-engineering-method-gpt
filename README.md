@@ -45,7 +45,7 @@ Project-specific governance (for example, whether a Work may move from `Preparin
 
 ## Consumer currently driving the capability set
 
-`Oxelio/Architecture-Web` is a consumer and validation target, not the owner of this connector contract. Its governance PR and GitHub Project must not be modified merely to test connector contract capabilities.
+`Oxelio/Architecture-Web` is a consumer and validation target, not the owner of this connector contract. Its governance PR and GitHub Project must not be modified merely to test connector capabilities.
 
 ## Deployment to a Custom GPT
 
