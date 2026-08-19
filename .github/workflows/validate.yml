@@ -1,0 +1,42 @@
+name: Validate repository contracts
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-openapi:
+    name: Validate repository contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install validation dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Validate OpenAPI contract
+        run: python scripts/validate_openapi.py
+
+      - name: Validate deployment manifest shape
+        run: python scripts/validate_manifest_shape.py
+
+      - name: Validate GPT deployment manifest
+        run: python scripts/validate_configuration.py
+
+      - name: Run repository contract regression tests
+        run: python -m unittest discover -s tests -p "test_*.py"
