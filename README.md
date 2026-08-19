@@ -56,7 +56,7 @@ This repository consumes it as a pinned Git submodule:
 software-engineering-method/
 ```
 
-The submodule revision defines which version of the Method is currently used as knowledge by the Custom GPT.
+The submodule revision defines which version of the Method this repository adopts as the knowledge source for the Custom GPT.
 
 Generic Software Engineering Method rules must therefore be changed in the Method repository, not duplicated here.
 
