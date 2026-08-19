@@ -1,4 +1,4 @@
-name: Validate repository contracts
+name: Validate OpenAPI
 
 on:
   pull_request:
@@ -11,32 +11,22 @@ permissions:
 
 jobs:
   validate-openapi:
-    name: Validate repository contracts
+    name: Validate OpenAPI
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          python-version: "3.13"
-          cache: pip
-          cache-dependency-path: requirements-dev.txt
+          node-version: 24
 
-      - name: Install validation dependencies
-        run: python -m pip install -r requirements-dev.txt
-
-      - name: Validate OpenAPI contract
-        run: python scripts/validate_openapi.py
-
-      - name: Validate deployment manifest shape
-        run: python scripts/validate_manifest_shape.py
-
-      - name: Validate GPT deployment manifest
-        run: python scripts/validate_configuration.py
-
-      - name: Run repository contract regression tests
-        run: python -m unittest discover -s tests -p "test_*.py"
+      - name: Validate OpenAPI specification
+        run: >
+          npx --yes @redocly/cli@2.45.0
+          lint actions/github/openapi.yaml
+          --extends=spec
+          --format=github-actions

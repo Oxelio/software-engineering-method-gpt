@@ -1,185 +1,96 @@
 # Software Engineering Method GPT
 
-Version-controlled source for the **Software Engineering Method** Custom GPT.
+Version-controlled source for the **Software Engineering Method Custom GPT**.
 
-This repository owns the GPT-specific configuration, runtime instructions, technical actions, validation tooling, and acceptance-test assets. It does **not** own the canonical Software Engineering Method itself and it does **not** own project-specific governance.
+This repository contains the files used to configure the Custom GPT, its GitHub Action contract, and the version of the Software Engineering Method currently used as GPT knowledge.
 
-> **Tool Capability != Operational Permission != Role Authority**
-
-A technical operation being available to the GPT never implies that the GPT is authorized to execute it in a particular project.
-
-## Current truth
-
-The repository currently contains the Custom GPT definition, supporting GitHub Action contract, and a pinned Git submodule at:
-
-```text
-software-engineering-method/
-```
-
-The canonical Method remains owned by `Oxelio/software-engineering-method`. This repository owns only the decision to consume a specific pinned Method revision: `.gitmodules` records the submodule path/repository mapping and the root gitlink records the exact adopted revision.
-
-The submodule source can be used to prepare Method knowledge for GPT deployment. Any deployment-specific packaging remains a deployment artifact and does not become a second owner of Method rules.
-
-## Sources of truth
-
-| Concern | Source of truth |
-| --- | --- |
-| General Software Engineering Method | `Oxelio/software-engineering-method` |
-| Method revision adopted by this repository | root `software-engineering-method` gitlink |
-| Custom GPT runtime behavioral contract | `gpt/instructions.md` |
-| Custom GPT display name, short description, and positioning | `gpt/description.md` |
-| Version-controlled deployment configuration | `gpt/configuration.yaml` |
-| Conversation starters | `gpt/conversation-starters.md` |
-| GitHub technical capability | `actions/github/` |
-| Project-specific Method Profile and governance | the consuming project repository |
-| Project-specific Operational Permissions | the consuming project repository |
-
-These sources own different kinds of truth. The pinned submodule supplies canonical Method material from its external owner; this repository must not turn that material into a competing canonical Method copy.
-
-## Current repository architecture
+## Repository structure
 
 ```text
 software-engineering-method-gpt/
 ├── README.md
-├── .gitignore
 ├── .gitmodules
-├── requirements-dev.txt
 │
-├── software-engineering-method/        # pinned Git submodule
+├── software-engineering-method/
 │
 ├── gpt/
 │   ├── README.md
-│   ├── configuration.yaml
 │   ├── instructions.md
 │   ├── description.md
 │   └── conversation-starters.md
 │
 ├── actions/
 │   └── github/
-│       ├── README.md
-│       ├── capabilities.md
 │       └── openapi.yaml
-│
-├── scripts/
-│   ├── README.md
-│   └── validate_openapi.py
-│
-├── tests/
-│   ├── fixtures/
-│   │   └── architecture-web.yaml
-│   └── github-action-acceptance.md
 │
 └── .github/
     └── workflows/
         └── validate.yml
 ```
 
-## Responsibility boundaries
+## GPT configuration
 
-### This repository owns
+The Custom GPT configuration is stored in [`gpt/`](gpt/).
 
-- Custom GPT runtime instructions and GPT-specific behavior;
-- version-controlled GPT deployment/configuration metadata;
-- the GPT display metadata and conversation starters;
-- the pinned Method revision adopted by this GPT repository;
-- GitHub Action/OpenAPI capability definitions;
-- GPT-specific validation tooling;
-- GPT-specific acceptance-test assets.
+It contains:
 
-### This repository does not own
+- [`instructions.md`](gpt/instructions.md): Custom GPT instructions;
+- [`description.md`](gpt/description.md): GPT name, description, and positioning;
+- [`conversation-starters.md`](gpt/conversation-starters.md): conversation starters displayed to users.
 
-- the canonical Software Engineering Method;
-- generic definitions of Work, Work State, WIP, Continuous Flow, Architecture Review, Role Authority, or Operational Permission;
-- project-specific Method Profiles;
-- project-specific governance or Current Truth;
-- project-specific authorization decisions.
+These files are the version-controlled representation of the corresponding fields configured in the Custom GPT.
 
-## Method integration
+Platform-managed settings that are not represented by these files remain configured directly in ChatGPT.
 
-The canonical Method is consumed as a pinned Git submodule at:
+## Software Engineering Method
+
+The canonical Software Engineering Method is maintained in:
+
+```text
+Oxelio/software-engineering-method
+```
+
+This repository consumes it as a pinned Git submodule:
 
 ```text
 software-engineering-method/
 ```
 
-The root `.gitmodules` file owns the submodule path/repository mapping. The root gitlink owns the exact Method revision currently adopted by this repository.
+The submodule revision defines which version of the Method is currently used as knowledge by the Custom GPT.
 
-The dependency direction is:
-
-```text
-Oxelio/software-engineering-method
-              │
-              │ canonical Method
-              ▼
-Oxelio/software-engineering-method-gpt
-              │
-              ├── pinned Method source
-              ├── GPT runtime configuration
-              ├── deployment knowledge packaging
-              └── Tool capabilities
-```
-
-Consuming projects such as `Oxelio/Architecture-Web` consume the Method independently. They do not depend on this GPT repository in order to obtain the Method.
-
-Updating the submodule is an intentional dependency change: review the target Method revision, update the gitlink, and refresh any deployment knowledge package that must track it.
-
-## GPT configuration
-
-The version-controlled GPT configuration lives under [`gpt/`](gpt/README.md).
-
-[`gpt/configuration.yaml`](gpt/configuration.yaml) is the repository-owned deployment configuration manifest. It references the runtime files, current Method source, and GitHub Action schema without duplicating presentation values owned elsewhere.
-
-[`gpt/description.md`](gpt/description.md) is the authoritative repository owner of the Custom GPT display name, short description, and positioning text.
-
-[`gpt/instructions.md`](gpt/instructions.md) is the **runtime behavioral contract** for the Custom GPT. It constrains how the agent applies authoritative sources, resolves context and authority, handles conflicts, and uses tools. It is not a second canonical copy of the Software Engineering Method.
-
-Detailed generic Method definitions remain owned by `Oxelio/software-engineering-method` and are consumed here through the pinned submodule. When Method material is supplied to the deployed GPT, deployment packaging must preserve that ownership rather than converting the package into a new normative source.
+Generic Software Engineering Method rules must therefore be changed in the Method repository, not duplicated here.
 
 ## GitHub Action
 
-The GitHub integration is a **Tool Capability** of the Custom GPT. Its contract is located at:
+The Custom GPT GitHub integration is defined by:
 
 ```text
 actions/github/openapi.yaml
 ```
 
-Current contract version: **2.1.0**.
+This OpenAPI document defines the technical operations exposed to the GPT.
 
-The Action intentionally exposes a bounded set of GitHub REST and Projects v2 GraphQL operations. It does not define authorization policy. See:
+It describes what the GitHub Action can technically perform. It does not by itself grant the GPT permission to execute an operation in a specific project.
 
-- [`actions/github/README.md`](actions/github/README.md)
-- [`actions/github/capabilities.md`](actions/github/capabilities.md)
-- [`tests/github-action-acceptance.md`](tests/github-action-acceptance.md)
+Project-specific permissions and governance remain the responsibility of the project being operated on.
 
-## Local validation
+## Validation
 
-Install the development dependencies:
+GitHub Actions validates:
 
-```bash
-python -m pip install -r requirements-dev.txt
+```text
+actions/github/openapi.yaml
 ```
 
-Validate the OpenAPI contract:
+The purpose of this validation is only to ensure that the GitHub Action contract remains a valid OpenAPI document.
 
-```bash
-python scripts/validate_openapi.py
-```
+## Updating the GPT
 
-Validation has two distinct layers:
+When changing the Custom GPT:
 
-1. standard OpenAPI validation against the OpenAPI specification;
-2. repository-specific invariants such as exact OpenAPI version, unique `operationId` values, local references, and the bounded GraphQL allowlist.
+1. update the relevant files under `gpt/`;
+2. update `actions/github/openapi.yaml` when GitHub capabilities change;
+3. update the `software-engineering-method` submodule when the GPT should use a newer Method revision;
+4. reflect the changed configuration in the Custom GPT in ChatGPT.
 
-The same validation runs in GitHub Actions through `.github/workflows/validate.yml`.
-
-## Change workflow
-
-Keep changes scoped to the responsibility that owns them:
-
-1. change generic Method rules in `Oxelio/software-engineering-method`;
-2. update the root `software-engineering-method` gitlink intentionally when this GPT repository should adopt a different canonical Method revision;
-3. change `gpt/` only for GPT-specific runtime behavior, presentation, or deployment configuration;
-4. change `actions/github/` only for technical GitHub capabilities;
-5. change project-specific governance in the consuming project repository;
-6. validate the OpenAPI contract and relevant acceptance tests before updating the deployed Custom GPT;
-7. refresh deployment knowledge derived from the Method whenever the adopted submodule revision changes.
+The repository intentionally remains minimal: files should only be added when they represent an actual part of the Custom GPT configuration or are required to validate it.
