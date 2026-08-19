@@ -1,0 +1,28 @@
+# Repository-owned manifest of version-controlled inputs used to configure the Custom GPT.
+# It is intentionally not a complete export of platform-managed GPT settings.
+schema_version: 1
+manifest_scope: version-controlled-deployment-inputs
+
+runtime:
+  instructions: gpt/instructions.md
+  description: gpt/description.md
+  conversation_starters: gpt/conversation-starters.md
+
+knowledge:
+  method:
+    submodule: software-engineering-method
+    deployment: custom-gpt-knowledge
+
+capabilities:
+  status: unspecified
+  note: >-
+    Platform capability flags are not yet represented by an authoritative
+    repository source and must not be guessed.
+
+actions:
+  github:
+    schema: actions/github/openapi.yaml
+    capability_model: actions/github/capabilities.md
+    authentication:
+      owner: external
+      secrets_in_repository: false

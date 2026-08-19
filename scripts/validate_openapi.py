@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static validation for the GitHub Action OpenAPI contract."""
+"""Validate the GitHub Action OpenAPI contract and repository invariants."""
 
 from __future__ import annotations
 
@@ -9,12 +9,14 @@ from typing import Any
 
 try:
     import yaml
-except ImportError:
+    from openapi_spec_validator import validate as validate_openapi_spec
+except ImportError as exc:
     print(
-        "Missing dependency: PyYAML. "
-        "Install it with `python -m pip install -r requirements-dev.txt`.",
+        "Missing development dependency. "
+        "Install dependencies with `python -m pip install -r requirements-dev.txt`.",
         file=sys.stderr,
     )
+    print(f"Import error: {exc}", file=sys.stderr)
     raise SystemExit(2)
 
 
@@ -33,13 +35,24 @@ def load_spec(path: Path) -> dict[str, Any]:
     return data
 
 
-def validate_top_level(spec: dict[str, Any], errors: list[str]) -> None:
+def validate_standard_openapi(spec: dict[str, Any], errors: list[str]) -> None:
+    """Validate the document against the OpenAPI specification."""
+
+    try:
+        validate_openapi_spec(spec)
+    except Exception as exc:  # validator exposes version-specific exception types
+        errors.append(str(exc))
+
+
+def validate_contract_shape(spec: dict[str, Any], errors: list[str]) -> None:
+    """Validate repository-owned contract requirements beyond generic OpenAPI."""
+
     if spec.get("openapi") != "3.1.0":
-        errors.append("openapi must be 3.1.0")
+        errors.append("openapi must be exactly 3.1.0 for the Custom GPT Action")
 
     for key in ("info", "servers", "paths", "components"):
         if key not in spec:
-            errors.append(f"missing top-level key: {key}")
+            errors.append(f"missing required repository contract key: {key}")
 
 
 def validate_operation_ids(spec: dict[str, Any], errors: list[str]) -> int:
@@ -88,7 +101,7 @@ def validate_refs(spec: dict[str, Any], errors: list[str]) -> None:
         if isinstance(value, dict):
             ref = value.get("$ref")
             if isinstance(ref, str) and not resolve_local_ref(spec, ref):
-                errors.append(f"unresolved ref: {ref}")
+                errors.append(f"unresolved local ref: {ref}")
             for child in value.values():
                 walk(child)
         elif isinstance(value, list):
@@ -124,29 +137,43 @@ def validate_graphql_allowlist(spec: dict[str, Any], errors: list[str]) -> int:
     return len(allowlist)
 
 
+def print_error_group(title: str, errors: list[str]) -> None:
+    if not errors:
+        return
+
+    print(f"{title}:")
+    for error in errors:
+        print(f"- {error}")
+
+
 def main() -> int:
-    errors: list[str] = []
+    standard_errors: list[str] = []
+    invariant_errors: list[str] = []
 
     try:
         spec = load_spec(OPENAPI_PATH)
     except (FileNotFoundError, ValueError, yaml.YAMLError) as exc:
         print("OpenAPI validation FAILED")
+        print("Document loading:")
         print(f"- {exc}")
         return 1
 
-    validate_top_level(spec, errors)
-    operation_count = validate_operation_ids(spec, errors)
-    validate_refs(spec, errors)
-    graphql_operation_count = validate_graphql_allowlist(spec, errors)
+    validate_standard_openapi(spec, standard_errors)
 
-    if errors:
+    validate_contract_shape(spec, invariant_errors)
+    operation_count = validate_operation_ids(spec, invariant_errors)
+    validate_refs(spec, invariant_errors)
+    graphql_operation_count = validate_graphql_allowlist(spec, invariant_errors)
+
+    if standard_errors or invariant_errors:
         print("OpenAPI validation FAILED")
-        for error in errors:
-            print(f"- {error}")
+        print_error_group("Standard OpenAPI validation", standard_errors)
+        print_error_group("Repository-specific GitHub Action invariants", invariant_errors)
         return 1
 
+    print("Standard OpenAPI validation OK")
     print(
-        "OpenAPI validation OK: "
+        "Repository-specific GitHub Action invariants OK: "
         f"{operation_count} operations, "
         f"{graphql_operation_count} allowlisted GraphQL operations"
     )

@@ -8,31 +8,48 @@ This repository owns the GPT-specific configuration, runtime instructions, techn
 
 A technical operation being available to the GPT never implies that the GPT is authorized to execute it in a particular project.
 
+## Current truth
+
+The repository currently contains the Custom GPT definition, supporting GitHub Action contract, and a pinned Git submodule at:
+
+```text
+software-engineering-method/
+```
+
+The canonical Method remains owned by `Oxelio/software-engineering-method`. This repository owns only the decision to consume a specific pinned Method revision: `.gitmodules` records the submodule path/repository mapping and the root gitlink records the exact adopted revision.
+
+The submodule source can be used to prepare Method knowledge for GPT deployment. Any deployment-specific packaging remains a deployment artifact and does not become a second owner of Method rules.
+
 ## Sources of truth
 
 | Concern | Source of truth |
 | --- | --- |
 | General Software Engineering Method | `Oxelio/software-engineering-method` |
-| Custom GPT behavior and configuration | this repository, primarily `gpt/` |
+| Method revision adopted by this repository | root `software-engineering-method` gitlink |
+| Custom GPT runtime behavioral contract | `gpt/instructions.md` |
+| Custom GPT display name, short description, and positioning | `gpt/description.md` |
+| Version-controlled deployment configuration | `gpt/configuration.yaml` |
+| Conversation starters | `gpt/conversation-starters.md` |
 | GitHub technical capability | `actions/github/` |
 | Project-specific Method Profile and governance | the consuming project repository |
 | Project-specific Operational Permissions | the consuming project repository |
 
-The canonical Method is consumed by this repository through the root-level `software-engineering-method/` Git submodule. This repository does not maintain a second generated or copied Method tree.
+These sources own different kinds of truth. The pinned submodule supplies canonical Method material from its external owner; this repository must not turn that material into a competing canonical Method copy.
 
-## Repository architecture
+## Current repository architecture
 
 ```text
 software-engineering-method-gpt/
 ├── README.md
 ├── .gitignore
-├── .gitmodules                         # created when the submodule is added
+├── .gitmodules
 ├── requirements-dev.txt
 │
-├── software-engineering-method/        # Git submodule
+├── software-engineering-method/        # pinned Git submodule
 │
 ├── gpt/
 │   ├── README.md
+│   ├── configuration.yaml
 │   ├── instructions.md
 │   ├── description.md
 │   └── conversation-starters.md
@@ -47,8 +64,14 @@ software-engineering-method-gpt/
 │   ├── README.md
 │   └── validate_openapi.py
 │
-└── tests/
-    └── github-action-acceptance.md
+├── tests/
+│   ├── fixtures/
+│   │   └── architecture-web.yaml
+│   └── github-action-acceptance.md
+│
+└── .github/
+    └── workflows/
+        └── validate.yml
 ```
 
 ## Responsibility boundaries
@@ -56,7 +79,9 @@ software-engineering-method-gpt/
 ### This repository owns
 
 - Custom GPT runtime instructions and GPT-specific behavior;
-- the GPT description and conversation starters;
+- version-controlled GPT deployment/configuration metadata;
+- the GPT display metadata and conversation starters;
+- the pinned Method revision adopted by this GPT repository;
 - GitHub Action/OpenAPI capability definitions;
 - GPT-specific validation tooling;
 - GPT-specific acceptance-test assets.
@@ -77,22 +102,7 @@ The canonical Method is consumed as a pinned Git submodule at:
 software-engineering-method/
 ```
 
-Add it from the repository root with:
-
-```bash
-git submodule add \
-  https://github.com/Oxelio/software-engineering-method.git \
-  software-engineering-method
-```
-
-Then commit the generated `.gitmodules` file and the submodule gitlink:
-
-```bash
-git add .gitmodules software-engineering-method
-git commit -m "feat: integrate canonical software engineering method"
-```
-
-The parent repository pins an explicit Method commit. Updating the Method is therefore an intentional change rather than an implicit synchronization.
+The root `.gitmodules` file owns the submodule path/repository mapping. The root gitlink owns the exact Method revision currently adopted by this repository.
 
 The dependency direction is:
 
@@ -103,19 +113,27 @@ Oxelio/software-engineering-method
               ▼
 Oxelio/software-engineering-method-gpt
               │
+              ├── pinned Method source
               ├── GPT runtime configuration
+              ├── deployment knowledge packaging
               └── Tool capabilities
 ```
 
 Consuming projects such as `Oxelio/Architecture-Web` consume the Method independently. They do not depend on this GPT repository in order to obtain the Method.
 
+Updating the submodule is an intentional dependency change: review the target Method revision, update the gitlink, and refresh any deployment knowledge package that must track it.
+
 ## GPT configuration
 
 The version-controlled GPT configuration lives under [`gpt/`](gpt/README.md).
 
-The most important file is [`gpt/instructions.md`](gpt/instructions.md). It contains GPT-runtime behavior and orchestration constraints. Detailed Method definitions remain canonical in `software-engineering-method/` rather than being duplicated here.
+[`gpt/configuration.yaml`](gpt/configuration.yaml) is the repository-owned deployment configuration manifest. It references the runtime files, current Method source, and GitHub Action schema without duplicating presentation values owned elsewhere.
 
-When the Custom GPT needs Method reference material, use the canonical Method documents directly. Introduce a deployment-specific packaging mechanism only if a concrete platform constraint makes one necessary.
+[`gpt/description.md`](gpt/description.md) is the authoritative repository owner of the Custom GPT display name, short description, and positioning text.
+
+[`gpt/instructions.md`](gpt/instructions.md) is the **runtime behavioral contract** for the Custom GPT. It constrains how the agent applies authoritative sources, resolves context and authority, handles conflicts, and uses tools. It is not a second canonical copy of the Software Engineering Method.
+
+Detailed generic Method definitions remain owned by `Oxelio/software-engineering-method` and are consumed here through the pinned submodule. When Method material is supplied to the deployed GPT, deployment packaging must preserve that ownership rather than converting the package into a new normative source.
 
 ## GitHub Action
 
@@ -135,7 +153,7 @@ The Action intentionally exposes a bounded set of GitHub REST and Projects v2 Gr
 
 ## Local validation
 
-Install the development dependency:
+Install the development dependencies:
 
 ```bash
 python -m pip install -r requirements-dev.txt
@@ -147,15 +165,21 @@ Validate the OpenAPI contract:
 python scripts/validate_openapi.py
 ```
 
-The validator checks the OpenAPI version, required sections, unique operation IDs, local references, and the bounded GraphQL allowlist.
+Validation has two distinct layers:
+
+1. standard OpenAPI validation against the OpenAPI specification;
+2. repository-specific invariants such as exact OpenAPI version, unique `operationId` values, local references, and the bounded GraphQL allowlist.
+
+The same validation runs in GitHub Actions through `.github/workflows/validate.yml`.
 
 ## Change workflow
 
 Keep changes scoped to the responsibility that owns them:
 
 1. change generic Method rules in `Oxelio/software-engineering-method`;
-2. update the `software-engineering-method/` submodule reference when this GPT should adopt a newer Method revision;
-3. change `gpt/` only for GPT-specific runtime behavior or configuration;
+2. update the root `software-engineering-method` gitlink intentionally when this GPT repository should adopt a different canonical Method revision;
+3. change `gpt/` only for GPT-specific runtime behavior, presentation, or deployment configuration;
 4. change `actions/github/` only for technical GitHub capabilities;
 5. change project-specific governance in the consuming project repository;
-6. validate the OpenAPI contract and relevant acceptance tests before updating the deployed Custom GPT.
+6. validate the OpenAPI contract and relevant acceptance tests before updating the deployed Custom GPT;
+7. refresh deployment knowledge derived from the Method whenever the adopted submodule revision changes.
