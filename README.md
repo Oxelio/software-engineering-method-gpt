@@ -1,8 +1,8 @@
 # Software Engineering Method GPT
 
-Version-controlled source for the **Software Engineering Method Custom GPT**.
+Version-controlled backup of the **Software Engineering Method Custom GPT** configuration, Method knowledge revision, and GitHub Action contract.
 
-This repository contains the files used to configure the Custom GPT, its GitHub Action contract, and the version of the Software Engineering Method currently used as GPT knowledge.
+The Custom GPT is configured manually in ChatGPT. This repository preserves the corresponding files in Git; it is not a deployment source of truth and does not prove which configuration is currently deployed.
 
 ## Repository structure
 
@@ -28,17 +28,13 @@ software-engineering-method-gpt/
         └── validate.yml
 ```
 
-## GPT configuration
+## GPT configuration backup
 
-The Custom GPT configuration is stored in [`gpt/`](gpt/).
-
-It contains:
+The files under [`gpt/`](gpt/) back up the corresponding Custom GPT fields:
 
 - [`instructions.md`](gpt/instructions.md): Custom GPT instructions;
 - [`description.md`](gpt/description.md): GPT name, description, and positioning;
 - [`conversation-starters.md`](gpt/conversation-starters.md): conversation starters displayed to users.
-
-These files are the version-controlled representation of the corresponding fields configured in the Custom GPT.
 
 Platform-managed settings that are not represented by these files remain configured directly in ChatGPT.
 
@@ -50,29 +46,25 @@ The canonical Software Engineering Method is maintained in:
 Oxelio/software-engineering-method
 ```
 
-This repository consumes it as a pinned Git submodule:
+This repository references it as a pinned Git submodule:
 
 ```text
 software-engineering-method/
 ```
 
-The submodule revision defines which version of the Method this repository adopts as the knowledge source for the Custom GPT.
+The pinned revision records the Method version associated with this repository backup and used as GPT knowledge when the backup is kept in sync with ChatGPT.
 
-Generic Software Engineering Method rules must therefore be changed in the Method repository, not duplicated here.
+Generic Software Engineering Method rules belong in the Method repository rather than being maintained as a second canonical copy here.
 
 ## GitHub Action
 
-The Custom GPT GitHub integration is defined by:
+The Custom GPT GitHub integration contract is stored in:
 
 ```text
 actions/github/openapi.yaml
 ```
 
-This OpenAPI document defines the technical operations exposed to the GPT.
-
-It describes what the GitHub Action can technically perform. It does not by itself grant the GPT permission to execute an operation in a specific project.
-
-Project-specific permissions and governance remain the responsibility of the project being operated on.
+The OpenAPI document defines the technical operations exposed by the GitHub Action. Tool availability does not by itself grant authority to decide or perform a project change; applicable project governance and Role Authority still apply.
 
 ## Validation
 
@@ -82,15 +74,14 @@ GitHub Actions validates:
 actions/github/openapi.yaml
 ```
 
-The purpose of this validation is only to ensure that the GitHub Action contract remains a valid OpenAPI document.
+The validation only checks that the GitHub Action contract remains a valid OpenAPI document.
 
-## Updating the GPT
+## Keeping the backup current
 
-When changing the Custom GPT:
+When the Custom GPT changes:
 
-1. update the relevant files under `gpt/`;
-2. update `actions/github/openapi.yaml` when GitHub capabilities change;
-3. update the `software-engineering-method` submodule when the GPT should use a newer Method revision;
-4. reflect the changed configuration in the Custom GPT in ChatGPT.
+1. update the matching files under `gpt/`;
+2. update `actions/github/openapi.yaml` when the GitHub Action contract changes;
+3. update the `software-engineering-method` submodule when the GPT knowledge revision changes.
 
-The repository intentionally remains minimal: files should only be added when they represent an actual part of the Custom GPT configuration or are required to validate it.
+The repository intentionally remains minimal. Add files only when they represent part of the backed-up Custom GPT configuration, its Method knowledge reference, its GitHub Action contract, or the validation required for that contract.
