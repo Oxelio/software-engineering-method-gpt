@@ -152,6 +152,8 @@ def validate_method_binding(
     if method is None:
         return None
 
+    check_manifest_shape(method, "knowledge.method", errors)
+
     submodule_name = method.get("submodule")
     if not isinstance(submodule_name, str) or not submodule_name.strip():
         errors.append("knowledge.method.submodule must be a non-empty submodule name")
