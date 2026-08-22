@@ -2,10 +2,11 @@ openapi: 3.1.0
 info:
   title: Software Engineering Method GPT - GitHub Action
   description: Bounded GitHub REST and Projects v2 GraphQL Tool Capability exposed to the Software Engineering Method GPT.
-    Supports repository discovery/creation, branches, files, issues, pull requests, native Sub-issues, organization Issue
-    Field metadata, and an explicit allowlist of Projects v2 operations. Destructive repository operations, pull-request merge,
-    and arbitrary GraphQL are not exposed. Tool Capability != Role Authority.
-  version: 2.1.0
+    Supports repository discovery, branches, files, issues, pull requests, native Sub-issues, read-only branch rules/protection
+    inspection, commit history/comparison, tags/releases, organization Issue Field metadata, and an explicit allowlist of
+    Projects v2 operations. Destructive repository operations, pull-request merge, and arbitrary GraphQL are not exposed.
+    Tool Capability != Role Authority.
+  version: 2.2.0
 servers:
 - url: https://api.github.com
   description: GitHub API
@@ -81,30 +82,6 @@ paths:
                   $ref: '#/components/schemas/Repository'
         '401':
           description: Authentication required
-    post:
-      operationId: createRepository
-      summary: Create a repository for the authenticated user
-      description: Create a repository. This is a structural mutation; tool availability does not imply workflow authorization.
-        Repository deletion is intentionally not exposed.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateRepositoryRequest'
-      responses:
-        '201':
-          description: Repository created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Repository'
-        '401':
-          description: Authentication required
-        '403':
-          description: Forbidden
-        '422':
-          description: Validation failed or secondary rate limit
   /repos/{owner}/{repo}:
     get:
       operationId: getRepository
@@ -354,6 +331,368 @@ paths:
           description: Conflict
         '422':
           description: Validation failed or reference already exists
+  /repos/{owner}/{repo}/rules/branches/{branch}:
+    get:
+      operationId: getBranchRules
+      summary: Get active rules for a branch
+      description: Read-only. Returns active rules that apply to the named branch, including applicable repository- and organization-level
+        rulesets. Evaluate/disabled rulesets are not returned.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: branch
+        in: path
+        required: true
+        description: Branch name without wildcard characters.
+        schema:
+          type: string
+          minLength: 1
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Active rules applying to the branch
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepositoryRule'
+        '404':
+          description: Repository not found or inaccessible
+  /repos/{owner}/{repo}/branches/{branch}/protection:
+    get:
+      operationId: getBranchProtection
+      summary: Get branch protection
+      description: Read-only. Returns classic branch protection settings for the named branch. Requires repository Administration
+        permission (read) for private repositories.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: branch
+        in: path
+        required: true
+        description: Branch name without wildcard characters.
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Branch protection settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchProtection'
+        '404':
+          description: Branch is not protected, or resource not found/inaccessible
+  /repos/{owner}/{repo}/commits:
+    get:
+      operationId: listCommits
+      summary: List repository commits
+      description: Read-only. Lists commits reachable from a branch, tag, or commit SHA. Useful for bounded history inspection
+        and pagination.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: sha
+        in: query
+        required: false
+        description: Branch name, tag, or commit SHA to start listing commits from. Defaults to the default branch.
+        schema:
+          type: string
+      - name: path
+        in: query
+        required: false
+        description: Only commits containing this file path.
+        schema:
+          type: string
+      - name: author
+        in: query
+        required: false
+        description: GitHub login or email address by which to filter commit authors.
+        schema:
+          type: string
+      - name: committer
+        in: query
+        required: false
+        description: GitHub login or email address by which to filter commit committers.
+        schema:
+          type: string
+      - name: since
+        in: query
+        required: false
+        description: Only show commits after this ISO 8601 timestamp.
+        schema:
+          type: string
+          format: date-time
+      - name: until
+        in: query
+        required: false
+        description: Only show commits before this ISO 8601 timestamp.
+        schema:
+          type: string
+          format: date-time
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Repository commits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CommitSummary'
+        '400':
+          description: Bad request
+        '404':
+          description: Repository or reference not found
+        '409':
+          description: Conflict, such as an empty repository
+        '422':
+          description: Validation failed or secondary rate limit
+  /repos/{owner}/{repo}/commits/{ref}:
+    get:
+      operationId: getCommit
+      summary: Get a commit
+      description: Read-only. Gets a commit by branch, tag, or SHA, including its parent commits. A commit with an empty parents
+        array is a Git root commit.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: ref
+        in: path
+        required: true
+        description: Commit SHA, branch name, or tag name.
+        schema:
+          type: string
+          minLength: 1
+      responses:
+        '200':
+          description: Commit details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Commit'
+        '404':
+          description: Commit, reference, or repository not found
+        '409':
+          description: Conflict
+        '422':
+          description: Validation failed or secondary rate limit
+        '500':
+          description: Internal GitHub error
+        '503':
+          description: Service unavailable
+  /repos/{owner}/{repo}/compare/{basehead}:
+    get:
+      operationId: compareCommits
+      summary: Compare two commits or refs
+      description: Read-only. Compares BASE...HEAD and returns relationship metadata, ahead/behind counts, merge-base information
+        when available, commits, and changed-file evidence.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: basehead
+        in: path
+        required: true
+        description: Comparison in BASE...HEAD form; refs or commit SHAs may be used.
+        schema:
+          type: string
+          minLength: 5
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Commit comparison
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitComparison'
+        '404':
+          description: Repository, commit, ref, or common comparison context not found
+        '500':
+          description: Internal GitHub error
+        '503':
+          description: Service unavailable
+  /repos/{owner}/{repo}/tags:
+    get:
+      operationId: listTags
+      summary: List repository tags
+      description: Read-only. Lists Git tags and the commit each tag references.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Repository tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepositoryTag'
+        '404':
+          description: Repository not found or inaccessible
+  /repos/{owner}/{repo}/releases:
+    get:
+      operationId: listReleases
+      summary: List repository releases
+      description: Read-only. Lists GitHub releases. Regular Git tags without releases are not included; use listTags for
+        the complete tag inventory.
+      parameters:
+      - name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Repository releases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Release'
+        '404':
+          description: Repository not found or inaccessible
   /repos/{owner}/{repo}/issues:
     get:
       operationId: listIssues
@@ -1364,37 +1703,6 @@ components:
           description: Numeric database ID of the child issue.
       required:
       - sub_issue_id
-    CreateRepositoryRequest:
-      type: object
-      additionalProperties: false
-      properties:
-        name:
-          type: string
-          minLength: 1
-        description:
-          type: string
-        homepage:
-          type: string
-        private:
-          type: boolean
-          default: true
-        has_issues:
-          type: boolean
-          default: true
-        has_projects:
-          type: boolean
-          default: true
-        has_wiki:
-          type: boolean
-          default: false
-        is_template:
-          type: boolean
-          default: false
-        auto_init:
-          type: boolean
-          default: true
-      required:
-      - name
     IssueFieldOption:
       type: object
       additionalProperties: true
@@ -1663,3 +1971,254 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GraphQLError'
+    RepositoryRule:
+      type: object
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+        ruleset_source_type:
+          type: string
+        ruleset_source:
+          type: string
+        ruleset_id:
+          type: integer
+        parameters:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+    BranchProtection:
+      type: object
+      additionalProperties: true
+      properties:
+        url:
+          type: string
+        required_status_checks:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        enforce_admins:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        required_pull_request_reviews:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        restrictions:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        required_linear_history:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        allow_force_pushes:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        allow_deletions:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        required_conversation_resolution:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        lock_branch:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        allow_fork_syncing:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+    CommitParent:
+      type: object
+      additionalProperties: true
+      properties:
+        sha:
+          type: string
+        url:
+          type: string
+        html_url:
+          type: string
+    CommitSummary:
+      type: object
+      additionalProperties: true
+      properties:
+        sha:
+          type: string
+        node_id:
+          type: string
+        url:
+          type: string
+        html_url:
+          type: string
+        comments_url:
+          type: string
+        commit:
+          type: object
+          additionalProperties: true
+          properties:
+            message:
+              type: string
+            author:
+              type:
+              - object
+              - 'null'
+              additionalProperties: true
+            committer:
+              type:
+              - object
+              - 'null'
+              additionalProperties: true
+            tree:
+              type:
+              - object
+              - 'null'
+              additionalProperties: true
+            verification:
+              type:
+              - object
+              - 'null'
+              additionalProperties: true
+        author:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        committer:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        parents:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommitParent'
+    Commit:
+      allOf:
+      - $ref: '#/components/schemas/CommitSummary'
+      - type: object
+        additionalProperties: true
+        properties:
+          stats:
+            type:
+            - object
+            - 'null'
+            additionalProperties: true
+          files:
+            type: array
+            items:
+              type: object
+              additionalProperties: true
+    CommitComparison:
+      type: object
+      additionalProperties: true
+      properties:
+        url:
+          type: string
+        html_url:
+          type: string
+        permalink_url:
+          type: string
+        diff_url:
+          type: string
+        patch_url:
+          type: string
+        status:
+          type: string
+        ahead_by:
+          type: integer
+        behind_by:
+          type: integer
+        total_commits:
+          type: integer
+        base_commit:
+          $ref: '#/components/schemas/CommitSummary'
+        merge_base_commit:
+          $ref: '#/components/schemas/CommitSummary'
+        commits:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommitSummary'
+        files:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    RepositoryTag:
+      type: object
+      additionalProperties: true
+      properties:
+        name:
+          type: string
+        commit:
+          type: object
+          additionalProperties: true
+          properties:
+            sha:
+              type: string
+            url:
+              type: string
+        zipball_url:
+          type: string
+        tarball_url:
+          type: string
+        node_id:
+          type: string
+    Release:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        url:
+          type: string
+        html_url:
+          type: string
+        tag_name:
+          type: string
+        target_commitish:
+          type: string
+        name:
+          type:
+          - string
+          - 'null'
+        body:
+          type:
+          - string
+          - 'null'
+        draft:
+          type: boolean
+        prerelease:
+          type: boolean
+        immutable:
+          type: boolean
+        created_at:
+          type: string
+        published_at:
+          type:
+          - string
+          - 'null'
+        author:
+          $ref: '#/components/schemas/User'
+        assets:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
