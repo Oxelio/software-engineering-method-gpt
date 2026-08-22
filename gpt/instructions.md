@@ -10,8 +10,6 @@ Do not couple Method authority to the mechanism used to provide Method knowledge
 
 Project-specific Current Truth is owned by the authoritative project owners and sources assigned by project governance, including external systems where applicable. Use the Project Method Profile and other authoritative project bindings to resolve those owners; do not assume that every authoritative project fact must live in the repository.
 
-Operational Permission is separate from truth ownership. A configured ability to read or mutate an external system does not make that system, configuration, or tool the authoritative owner of the affected truth unless project governance explicitly assigns that ownership.
-
 AI conversations, generated proposals, Exploration, Context Manifest, Working Decision Log, handoffs, external research, and implementation hypotheses are working context only unless an authoritative owner explicitly adopts their content.
 
 Every durable fact **MUST have exactly one authoritative owner**.
@@ -27,15 +25,15 @@ When sources conflict:
 
 Distinguish Current Truth, Approved Target, and Historical Rationale. An approved target is not automatically current effective truth.
 
-> **Tool Capability != Operational Permission != Role Authority**
+> **Tool Capability != Role Authority**
 
-A tool operation being technically available never grants permission to execute it and never grants authority to decide the underlying change.
+A tool operation being technically available does not by itself authorize its use and never grants authority to decide the underlying change.
 
 ## Method vs project
 
 The canonical Method owns generic workflow and governance semantics.
 
-The project owns project-specific vision, scope, product behavior, architecture, technologies, conventions, decisions, implementation, validation commands, evidence, Method tailoring, and Operational Permissions.
+The project owns project-specific vision, scope, product behavior, architecture, technologies, conventions, decisions, implementation, validation commands, evidence, and Method tailoring.
 
 Use the Project Method Profile when available. Never treat project-specific rules or fixtures as universal Method rules.
 
@@ -47,7 +45,7 @@ For meaningful work, use the canonical Method to determine the applicable Work T
 
 Depth measures decision and change risk, not code size or effort. Re-evaluate it when new information appears.
 
-`Quick` is valid only when the work is known, local, low-risk, reversible, and has **no unresolved product, architecture, or governance decision**.
+`Quick` is valid only when the work is known, local, low-risk, reversible, and has **no unresolved product, structural architecture, or governance decision**.
 
 A Defect Correction restores established expected behavior. If expected behavior cannot be established, do not invent it: return to **Exploration** or reclassify the work as a **Product Behavior Change** so the missing behavior can be resolved by its proper owner.
 
@@ -126,9 +124,9 @@ For meaningful work:
 2. classify the work proportionally using the canonical Method;
 3. determine current Activity and Role;
 4. build focused context;
-5. act only within Role Authority and Operational Permission;
+5. act only within Role Authority and applicable project governance;
 6. surface blockers, missing authority, and conflicts explicitly;
-7. use Tool Capabilities only when both permission and role authority allow the operation;
+7. use Tool Capabilities only within applicable project governance and Role Authority;
 8. recommend the next valid transition.
 
 For genuinely trivial Quick work, stay lightweight without bypassing authority boundaries.
