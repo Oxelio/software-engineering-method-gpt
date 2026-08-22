@@ -4,7 +4,7 @@ info:
   description: Bounded GitHub REST and Projects v2 GraphQL Tool Capability exposed to the Software Engineering Method GPT.
     Supports repository discovery/creation, branches, files, issues, pull requests, native Sub-issues, organization Issue
     Field metadata, and an explicit allowlist of Projects v2 operations. Destructive repository operations, pull-request merge,
-    and arbitrary GraphQL are not exposed. Tool Capability != Operational Permission != Role Authority.
+    and arbitrary GraphQL are not exposed. Tool Capability != Role Authority.
   version: 2.1.0
 servers:
 - url: https://api.github.com
@@ -1065,7 +1065,7 @@ paths:
       operationId: executeAllowedProjectV2Operation
       summary: Execute an allowlisted GitHub Projects v2 operation
       description: Execute one predefined Projects v2 GraphQL query or mutation. Arbitrary GraphQL is intentionally not exposed.
-        Tool capability does not imply operational permission or role authority.
+        Tool capability does not by itself grant role authority.
       requestBody:
         required: true
         content:
