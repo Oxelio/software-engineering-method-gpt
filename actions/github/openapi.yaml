@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
   title: Software Engineering Method GPT - GitHub Action
-  description: Bounded GitHub REST and Projects v2 GraphQL Tool Capability exposed to the Software Engineering Method GPT.
-    Supports repository discovery, branches, files, issues, pull requests, native Sub-issues, read-only branch rules/protection
-    inspection, commit history/comparison, tags/releases, organization Issue Field metadata, and an explicit allowlist of
-    Projects v2 operations. Destructive repository operations, pull-request merge, and arbitrary GraphQL are not exposed.
-    Tool Capability != Role Authority.
-  version: 2.2.0
+  description: Bounded GitHub REST and Projects v2 GraphQL Tool Capability exposed to the Software Engineering Method 
+    GPT. Supports repository discovery, branches, files, issues, pull requests, native Sub-issues, read-only branch 
+    rules/protection inspection, commit history/comparison, tags/releases, organization Issue Field metadata, and an 
+    explicit allowlist of Projects v2 operations including fields, items, views, workflow inspection, archiving, and 
+    ordering. Destructive repository operations, pull-request merge, arbitrary GraphQL, and mutation of built-in Project
+    workflow enabled state are not exposed. Tool Capability != Role Authority.
+  version: 2.3.1
 servers:
 - url: https://api.github.com
   description: GitHub API
@@ -145,8 +146,8 @@ paths:
     get:
       operationId: getRepositoryContent
       summary: Read a repository file or list a directory
-      description: Read a file or list a directory. File content is normally Base64 encoded. Use ref to select the branch,
-        tag, or commit to inspect.
+      description: Read a file or list a directory. File content is normally Base64 encoded. Use ref to select the 
+        branch, tag, or commit to inspect.
       parameters:
       - name: owner
         in: path
@@ -186,8 +187,8 @@ paths:
     put:
       operationId: createOrUpdateRepositoryFile
       summary: Create or update a file on an explicit branch
-      description: Create or replace a file on an explicit branch. Content must be Base64 encoded. When updating a file, provide
-        its current blob SHA.
+      description: Create or replace a file on an explicit branch. Content must be Base64 encoded. When updating a file,
+        provide its current blob SHA.
       parameters:
       - name: owner
         in: path
@@ -252,8 +253,8 @@ paths:
     get:
       operationId: getGitReference
       summary: Get a Git branch or tag reference
-      description: For a branch, use heads/<branch>. The returned object.sha can be used as the base commit when creating
-        another branch.
+      description: For a branch, use heads/<branch>. The returned object.sha can be used as the base commit when 
+        creating another branch.
       parameters:
       - name: owner
         in: path
@@ -287,8 +288,8 @@ paths:
     post:
       operationId: createGitReference
       summary: Create a Git branch reference
-      description: Create a branch reference from an existing commit SHA. The ref is restricted to refs/heads/* and cannot
-        create tags.
+      description: Create a branch reference from an existing commit SHA. The ref is restricted to refs/heads/* and 
+        cannot create tags.
       parameters:
       - name: owner
         in: path
@@ -335,8 +336,8 @@ paths:
     get:
       operationId: getBranchRules
       summary: Get active rules for a branch
-      description: Read-only. Returns active rules that apply to the named branch, including applicable repository- and organization-level
-        rulesets. Evaluate/disabled rulesets are not returned.
+      description: Read-only. Returns active rules that apply to the named branch, including applicable repository- and 
+        organization-level rulesets. Evaluate/disabled rulesets are not returned.
       parameters:
       - name: owner
         in: path
@@ -387,8 +388,8 @@ paths:
     get:
       operationId: getBranchProtection
       summary: Get branch protection
-      description: Read-only. Returns classic branch protection settings for the named branch. Requires repository Administration
-        permission (read) for private repositories.
+      description: Read-only. Returns classic branch protection settings for the named branch. Requires repository 
+        Administration permission (read) for private repositories.
       parameters:
       - name: owner
         in: path
@@ -422,8 +423,8 @@ paths:
     get:
       operationId: listCommits
       summary: List repository commits
-      description: Read-only. Lists commits reachable from a branch, tag, or commit SHA. Useful for bounded history inspection
-        and pagination.
+      description: Read-only. Lists commits reachable from a branch, tag, or commit SHA. Useful for bounded history 
+        inspection and pagination.
       parameters:
       - name: owner
         in: path
@@ -511,8 +512,8 @@ paths:
     get:
       operationId: getCommit
       summary: Get a commit
-      description: Read-only. Gets a commit by branch, tag, or SHA, including its parent commits. A commit with an empty parents
-        array is a Git root commit.
+      description: Read-only. Gets a commit by branch, tag, or SHA, including its parent commits. A commit with an empty
+        parents array is a Git root commit.
       parameters:
       - name: owner
         in: path
@@ -554,8 +555,8 @@ paths:
     get:
       operationId: compareCommits
       summary: Compare two commits or refs
-      description: Read-only. Compares BASE...HEAD and returns relationship metadata, ahead/behind counts, merge-base information
-        when available, commits, and changed-file evidence.
+      description: Read-only. Compares BASE...HEAD and returns relationship metadata, ahead/behind counts, merge-base 
+        information when available, commits, and changed-file evidence.
       parameters:
       - name: owner
         in: path
@@ -652,8 +653,8 @@ paths:
     get:
       operationId: listReleases
       summary: List repository releases
-      description: Read-only. Lists GitHub releases. Regular Git tags without releases are not included; use listTags for
-        the complete tag inventory.
+      description: Read-only. Lists GitHub releases. Regular Git tags without releases are not included; use listTags 
+        for the complete tag inventory.
       parameters:
       - name: owner
         in: path
@@ -697,7 +698,8 @@ paths:
     get:
       operationId: listIssues
       summary: List repository issues
-      description: GitHub's Issues API may also return pull requests. Entries containing pull_request represent pull requests.
+      description: GitHub's Issues API may also return pull requests. Entries containing pull_request represent pull 
+        requests.
       parameters:
       - name: owner
         in: path
@@ -857,8 +859,8 @@ paths:
     patch:
       operationId: updateIssue
       summary: Update an issue or its workflow metadata
-      description: Update issue content or workflow metadata. Do not silently change authoritative product requirements without
-        user authorization.
+      description: Update issue content or workflow metadata. Do not silently change authoritative product requirements 
+        without user authorization.
       parameters:
       - name: owner
         in: path
@@ -1182,8 +1184,8 @@ paths:
     post:
       operationId: createPullRequest
       summary: Create a pull request
-      description: Open a PR from head into base. Prefer draft=true until implementation and validation are ready for human
-        review. Merge is not exposed.
+      description: Open a PR from head into base. Prefer draft=true until implementation and validation are ready for 
+        human review. Merge is not exposed.
       parameters:
       - name: owner
         in: path
@@ -1273,8 +1275,8 @@ paths:
     patch:
       operationId: updatePullRequest
       summary: Update a pull request
-      description: Update pull request metadata or state. Merge is not exposed. Close a pull request only when explicitly
-        authorized.
+      description: Update pull request metadata or state. Merge is not exposed. Close a pull request only when 
+        explicitly authorized.
       parameters:
       - name: owner
         in: path
@@ -1403,8 +1405,11 @@ paths:
     post:
       operationId: executeAllowedProjectV2Operation
       summary: Execute an allowlisted GitHub Projects v2 operation
-      description: Execute one predefined Projects v2 GraphQL query or mutation. Arbitrary GraphQL is intentionally not exposed.
-        Tool capability does not by itself grant role authority.
+      description: Execute one predefined Projects v2 GraphQL query or mutation. Arbitrary GraphQL is intentionally not 
+        exposed. Tool capability does not by itself grant role authority. Project item and field deletion are intentionally not 
+        exposed; routine housekeeping should use archive/unarchive, and field changes should use bounded create/update 
+        operations. Built-in Project workflows are readable through the allowlist, but GitHub currently exposes no 
+        mutation to toggle their enabled state.
       requestBody:
         required: true
         content:
@@ -1871,6 +1876,26 @@ components:
           $ref: '#/components/schemas/ProjectV2IterationConfigurationInput'
         value:
           $ref: '#/components/schemas/ProjectV2FieldValueInput'
+        afterId:
+          type:
+          - string
+          - 'null'
+          description: Optional ProjectV2 item ID to position another item after. Null moves the item to the top.
+        viewId:
+          type: string
+          description: ProjectV2 view node ID.
+        layout:
+          type: string
+          enum:
+          - BOARD_LAYOUT
+          - ROADMAP_LAYOUT
+          - TABLE_LAYOUT
+          description: GitHub ProjectV2ViewLayout value.
+        filter:
+          type: string
+          description: Project view filter expression.
+        configuration:
+          $ref: '#/components/schemas/ProjectV2ViewConfigurationInput'
     GraphQLRequest:
       type: object
       additionalProperties: false
@@ -1881,70 +1906,96 @@ components:
           enum:
           - query($login:String!,$number:Int!){organization(login:$login){projectV2(number:$number){id title}}}
           - query($login:String!,$number:Int!){user(login:$login){projectV2(number:$number){id title}}}
-          - query($projectId:ID!){node(id:$projectId){... on ProjectV2{fields(first:100){nodes{... on ProjectV2FieldCommon{id
-            name} ... on ProjectV2SingleSelectField{id name options{id name}} ... on ProjectV2IterationField{id name configuration{iterations{startDate
-            id}}}}}}}}
+          - query($projectId:ID!){node(id:$projectId){... on ProjectV2{fields(first:100){nodes{... on 
+            ProjectV2FieldCommon{id name} ... on ProjectV2SingleSelectField{id name options{id name}} ... on 
+            ProjectV2IterationField{id name configuration{iterations{startDate id}}}}}}}}
           - mutation($projectId:ID!,$contentId:ID!){addProjectV2ItemById(input:{projectId:$projectId,contentId:$contentId}){item{id}}}
           - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$text:String!){updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:{text:$text}}){projectV2Item{id}}}
           - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$optionId:String!){updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:{singleSelectOptionId:$optionId}}){projectV2Item{id}}}
           - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$iterationId:String!){updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:{iterationId:$iterationId}}){projectV2Item{id}}}
           - query($login:String!,$first:Int!,$after:String,$search:String){organization(login:$login){projectsV2(first:$first,after:$after,query:$search){nodes{id
-            number title shortDescription closed public url owner{... on Organization{login} ... on User{login}}}pageInfo{hasNextPage
-            endCursor}totalCount}}}
+            number title shortDescription closed public url owner{... on Organization{login} ... on 
+            User{login}}}pageInfo{hasNextPage endCursor}totalCount}}}
           - query($login:String!,$first:Int!,$after:String,$search:String){user(login:$login){projectsV2(first:$first,after:$after,query:$search){nodes{id
-            number title shortDescription closed public url owner{... on Organization{login} ... on User{login}}}pageInfo{hasNextPage
-            endCursor}totalCount}}}
-          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on ProjectV2{fields(first:$first,after:$after,orderBy:{field:POSITION,direction:ASC}){nodes{__typename
-            ... on ProjectV2FieldCommon{id name dataType} ... on ProjectV2SingleSelectField{options{id name description color}}
-            ... on ProjectV2MultiSelectField{multiSelectOptions{id name description color}} ... on ProjectV2IterationField{configuration{duration
-            startDay iterations{id title startDate duration} completedIterations{id title startDate duration}}}}pageInfo{hasNextPage
-            endCursor}totalCount}}}}
-          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on ProjectV2{items(first:$first,after:$after){nodes{id
-            type isArchived content{... on Issue{id number title state url repository{nameWithOwner}} ... on PullRequest{id
-            number title state url repository{nameWithOwner}} ... on DraftIssue{id title body}} fieldValues(first:100){nodes{__typename
-            ... on ProjectV2ItemFieldTextValue{field{... on ProjectV2FieldCommon{id name dataType}} text} ... on ProjectV2ItemFieldNumberValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} number} ... on ProjectV2ItemFieldDateValue{field{... on ProjectV2FieldCommon{id
-            name dataType}} date} ... on ProjectV2ItemFieldSingleSelectValue{field{... on ProjectV2FieldCommon{id name dataType}}
-            optionId name color description} ... on ProjectV2ItemFieldMultiSelectValue{field{... on ProjectV2FieldCommon{id
-            name dataType}} value options{id name description color}} ... on ProjectV2ItemFieldIterationValue{field{... on
-            ProjectV2FieldCommon{id name dataType}} iterationId title startDate duration} ... on ProjectV2ItemFieldLabelValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} labels(first:100){nodes{id name}}} ... on ProjectV2ItemFieldMilestoneValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} milestone{id number title}} ... on ProjectV2ItemFieldRepositoryValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} repository{id nameWithOwner}} ... on ProjectV2ItemFieldUserValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} users(first:100){nodes{id login}}} ... on ProjectV2ItemFieldPullRequestValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} pullRequests(first:100){nodes{id number title url}}} ... on ProjectV2ItemIssueFieldValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} issueFieldValue{__typename ... on IssueFieldDateValue{value} ... on
-            IssueFieldMultiSelectValue{value options{id name color description}} ... on IssueFieldNumberValue{value} ... on
-            IssueFieldSingleSelectValue{optionId name value color description} ... on IssueFieldTextValue{value}}}}}}pageInfo{hasNextPage
-            endCursor}totalCount}}}}
-          - query($itemId:ID!,$first:Int!,$after:String){node(id:$itemId){... on ProjectV2Item{fieldValues(first:$first,after:$after){nodes{__typename
-            ... on ProjectV2ItemFieldTextValue{field{... on ProjectV2FieldCommon{id name dataType}} text} ... on ProjectV2ItemFieldNumberValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} number} ... on ProjectV2ItemFieldDateValue{field{... on ProjectV2FieldCommon{id
-            name dataType}} date} ... on ProjectV2ItemFieldSingleSelectValue{field{... on ProjectV2FieldCommon{id name dataType}}
-            optionId name color description} ... on ProjectV2ItemFieldMultiSelectValue{field{... on ProjectV2FieldCommon{id
-            name dataType}} value options{id name description color}} ... on ProjectV2ItemFieldIterationValue{field{... on
-            ProjectV2FieldCommon{id name dataType}} iterationId title startDate duration} ... on ProjectV2ItemFieldLabelValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} labels(first:100){nodes{id name}}} ... on ProjectV2ItemFieldMilestoneValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} milestone{id number title}} ... on ProjectV2ItemFieldRepositoryValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} repository{id nameWithOwner}} ... on ProjectV2ItemFieldUserValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} users(first:100){nodes{id login}}} ... on ProjectV2ItemFieldPullRequestValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} pullRequests(first:100){nodes{id number title url}}} ... on ProjectV2ItemIssueFieldValue{field{...
-            on ProjectV2FieldCommon{id name dataType}} issueFieldValue{__typename ... on IssueFieldDateValue{value} ... on
-            IssueFieldMultiSelectValue{value options{id name color description}} ... on IssueFieldNumberValue{value} ... on
-            IssueFieldSingleSelectValue{optionId name value color description} ... on IssueFieldTextValue{value}}}}pageInfo{hasNextPage
-            endCursor}totalCount}}}}
+            number title shortDescription closed public url owner{... on Organization{login} ... on 
+            User{login}}}pageInfo{hasNextPage endCursor}totalCount}}}
+          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on 
+            ProjectV2{fields(first:$first,after:$after,orderBy:{field:POSITION,direction:ASC}){nodes{__typename ... on 
+            ProjectV2FieldCommon{id name dataType} ... on ProjectV2SingleSelectField{options{id name description color}}
+            ... on ProjectV2MultiSelectField{multiSelectOptions{id name description color}} ... on 
+            ProjectV2IterationField{configuration{duration startDay iterations{id title startDate duration} 
+            completedIterations{id title startDate duration}}}}pageInfo{hasNextPage endCursor}totalCount}}}}
+          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on 
+            ProjectV2{items(first:$first,after:$after){nodes{id type isArchived content{... on Issue{id number title 
+            state url repository{nameWithOwner}} ... on PullRequest{id number title state url repository{nameWithOwner}}
+            ... on DraftIssue{id title body}} fieldValues(first:100){nodes{__typename ... on 
+            ProjectV2ItemFieldTextValue{field{... on ProjectV2FieldCommon{id name dataType}} text} ... on 
+            ProjectV2ItemFieldNumberValue{field{... on ProjectV2FieldCommon{id name dataType}} number} ... on 
+            ProjectV2ItemFieldDateValue{field{... on ProjectV2FieldCommon{id name dataType}} date} ... on 
+            ProjectV2ItemFieldSingleSelectValue{field{... on ProjectV2FieldCommon{id name dataType}} optionId name color
+            description} ... on ProjectV2ItemFieldMultiSelectValue{field{... on ProjectV2FieldCommon{id name dataType}} 
+            value options{id name description color}} ... on ProjectV2ItemFieldIterationValue{field{... on 
+            ProjectV2FieldCommon{id name dataType}} iterationId title startDate duration} ... on 
+            ProjectV2ItemFieldLabelValue{field{... on ProjectV2FieldCommon{id name dataType}} labels(first:100){nodes{id
+            name}}} ... on ProjectV2ItemFieldMilestoneValue{field{... on ProjectV2FieldCommon{id name dataType}} 
+            milestone{id number title}} ... on ProjectV2ItemFieldRepositoryValue{field{... on ProjectV2FieldCommon{id 
+            name dataType}} repository{id nameWithOwner}} ... on ProjectV2ItemFieldUserValue{field{... on 
+            ProjectV2FieldCommon{id name dataType}} users(first:100){nodes{id login}}} ... on 
+            ProjectV2ItemFieldPullRequestValue{field{... on ProjectV2FieldCommon{id name dataType}} 
+            pullRequests(first:100){nodes{id number title url}}} ... on ProjectV2ItemIssueFieldValue{field{... on 
+            ProjectV2FieldCommon{id name dataType}} issueFieldValue{__typename ... on IssueFieldDateValue{value} ... on 
+            IssueFieldMultiSelectValue{value options{id name color description}} ... on IssueFieldNumberValue{value} ...
+            on IssueFieldSingleSelectValue{optionId name value color description} ... on 
+            IssueFieldTextValue{value}}}}}}pageInfo{hasNextPage endCursor}totalCount}}}}
+          - query($itemId:ID!,$first:Int!,$after:String){node(id:$itemId){... on 
+            ProjectV2Item{fieldValues(first:$first,after:$after){nodes{__typename ... on 
+            ProjectV2ItemFieldTextValue{field{... on ProjectV2FieldCommon{id name dataType}} text} ... on 
+            ProjectV2ItemFieldNumberValue{field{... on ProjectV2FieldCommon{id name dataType}} number} ... on 
+            ProjectV2ItemFieldDateValue{field{... on ProjectV2FieldCommon{id name dataType}} date} ... on 
+            ProjectV2ItemFieldSingleSelectValue{field{... on ProjectV2FieldCommon{id name dataType}} optionId name color
+            description} ... on ProjectV2ItemFieldMultiSelectValue{field{... on ProjectV2FieldCommon{id name dataType}} 
+            value options{id name description color}} ... on ProjectV2ItemFieldIterationValue{field{... on 
+            ProjectV2FieldCommon{id name dataType}} iterationId title startDate duration} ... on 
+            ProjectV2ItemFieldLabelValue{field{... on ProjectV2FieldCommon{id name dataType}} labels(first:100){nodes{id
+            name}}} ... on ProjectV2ItemFieldMilestoneValue{field{... on ProjectV2FieldCommon{id name dataType}} 
+            milestone{id number title}} ... on ProjectV2ItemFieldRepositoryValue{field{... on ProjectV2FieldCommon{id 
+            name dataType}} repository{id nameWithOwner}} ... on ProjectV2ItemFieldUserValue{field{... on 
+            ProjectV2FieldCommon{id name dataType}} users(first:100){nodes{id login}}} ... on 
+            ProjectV2ItemFieldPullRequestValue{field{... on ProjectV2FieldCommon{id name dataType}} 
+            pullRequests(first:100){nodes{id number title url}}} ... on ProjectV2ItemIssueFieldValue{field{... on 
+            ProjectV2FieldCommon{id name dataType}} issueFieldValue{__typename ... on IssueFieldDateValue{value} ... on 
+            IssueFieldMultiSelectValue{value options{id name color description}} ... on IssueFieldNumberValue{value} ...
+            on IssueFieldSingleSelectValue{optionId name value color description} ... on 
+            IssueFieldTextValue{value}}}}pageInfo{hasNextPage endCursor}totalCount}}}}
           - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$value:ProjectV2FieldValue!){updateProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:$value}){projectV2Item{id}}}
           - mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!){clearProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId}){projectV2Item{id}}}
-          - mutation($projectId:ID!,$itemId:ID!){deleteProjectV2Item(input:{projectId:$projectId,itemId:$itemId}){deletedItemId}}
           - mutation($projectId:ID!,$name:String!,$dataType:ProjectV2CustomFieldType!,$singleSelectOptions:[ProjectV2SingleSelectFieldOptionInput!],$multiSelectOptions:[ProjectV2MultiSelectFieldOptionInput!],$iterationConfiguration:ProjectV2IterationFieldConfigurationInput){createProjectV2Field(input:{projectId:$projectId,name:$name,dataType:$dataType,singleSelectOptions:$singleSelectOptions,multiSelectOptions:$multiSelectOptions,iterationConfiguration:$iterationConfiguration}){projectV2Field{__typename
-            ... on ProjectV2FieldCommon{id name dataType} ... on ProjectV2SingleSelectField{options{id name description color}}
-            ... on ProjectV2MultiSelectField{multiSelectOptions{id name description color}} ... on ProjectV2IterationField{configuration{duration
-            startDay iterations{id title startDate duration}}}}}}
-          - mutation($fieldId:ID!){deleteProjectV2Field(input:{fieldId:$fieldId}){projectV2Field{__typename ... on ProjectV2FieldCommon{id
-            name dataType}}}}
-          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on ProjectV2{views(first:$first,after:$after){nodes{id
-            number name layout filter configuration{visibleFields(first:100){nodes{... on ProjectV2FieldCommon{id name dataType}}}}}pageInfo{hasNextPage
-            endCursor}totalCount}}}}
+            ... on ProjectV2FieldCommon{id name dataType} ... on ProjectV2SingleSelectField{options{id name description 
+            color}} ... on ProjectV2MultiSelectField{multiSelectOptions{id name description color}} ... on 
+            ProjectV2IterationField{configuration{duration startDay iterations{id title startDate duration}}}}}}
+          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on 
+            ProjectV2{views(first:$first,after:$after){nodes{id number name layout filter 
+            configuration{visibleFields(first:100){nodes{... on ProjectV2FieldCommon{id name 
+            dataType}}}}}pageInfo{hasNextPage endCursor}totalCount}}}}
+          - query($projectId:ID!,$first:Int!,$after:String){node(id:$projectId){... on 
+            ProjectV2{workflows(first:$first,after:$after,orderBy:{field:NUMBER,direction:ASC}){nodes{id number name 
+            enabled createdAt updatedAt}pageInfo{hasNextPage endCursor}totalCount}}}}
+          - mutation($projectId:ID!,$itemId:ID!){archiveProjectV2Item(input:{projectId:$projectId,itemId:$itemId}){item{id
+            isArchived}}}
+          - mutation($projectId:ID!,$itemId:ID!){unarchiveProjectV2Item(input:{projectId:$projectId,itemId:$itemId}){item{id
+            isArchived}}}
+          - mutation($projectId:ID!,$itemId:ID!,$afterId:ID){updateProjectV2ItemPosition(input:{projectId:$projectId,itemId:$itemId,afterId:$afterId}){items{nodes{id}totalCount}}}
+          - mutation($fieldId:ID!,$name:String,$singleSelectOptions:[ProjectV2SingleSelectFieldOptionInput!],$multiSelectOptions:[ProjectV2MultiSelectFieldOptionInput!],$iterationConfiguration:ProjectV2IterationFieldConfigurationInput){updateProjectV2Field(input:{fieldId:$fieldId,name:$name,singleSelectOptions:$singleSelectOptions,multiSelectOptions:$multiSelectOptions,iterationConfiguration:$iterationConfiguration}){projectV2Field{__typename
+            ... on ProjectV2FieldCommon{id name dataType} ... on ProjectV2SingleSelectField{options{id name description 
+            color}} ... on ProjectV2MultiSelectField{multiSelectOptions{id name description color}} ... on 
+            ProjectV2IterationField{configuration{duration startDay iterations{id title startDate duration}}}}}}
+          - mutation($projectId:ID!,$name:String!,$layout:ProjectV2ViewLayout!,$configuration:ProjectV2ViewConfigurationInput){createProjectV2View(input:{projectId:$projectId,name:$name,layout:$layout,configuration:$configuration}){projectV2View{id
+            number name layout filter configuration{visibleFields(first:100){nodes{... on ProjectV2FieldCommon{id name 
+            dataType}}}}}}}
+          - mutation($viewId:ID!,$name:String,$layout:ProjectV2ViewLayout,$filter:String,$configuration:ProjectV2ViewConfigurationInput){updateProjectV2View(input:{viewId:$viewId,name:$name,layout:$layout,filter:$filter,configuration:$configuration}){projectV2View{id
+            number name layout filter configuration{visibleFields(first:100){nodes{... on ProjectV2FieldCommon{id name 
+            dataType}}}}}}}
+          - mutation($viewId:ID!){deleteProjectV2View(input:{viewId:$viewId}){projectV2View{id number name}}}
         variables:
           $ref: '#/components/schemas/GraphQLVariables'
       required:
@@ -2222,3 +2273,12 @@ components:
           items:
             type: object
             additionalProperties: true
+    ProjectV2ViewConfigurationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        visibleFieldIds:
+          type: array
+          items:
+            type: string
+          description: Ordered ProjectV2 field node IDs visible in the view.
