@@ -2,12 +2,12 @@ openapi: 3.1.0
 info:
   title: Software Engineering Method GPT - GitHub Action
   description: Bounded GitHub REST and Projects v2 GraphQL Tool Capability exposed to the Software Engineering Method GPT.
-    Supports repository discovery, branches, files, issues, pull requests, native Sub-issues, read-only branch rules/protection
-    inspection, commit history/comparison, tags/releases, organization Issue Field metadata, and an explicit allowlist of
-    Projects v2 operations including fields, items, views, workflow inspection, archiving, and ordering. Destructive repository
-    operations, pull-request merge, arbitrary GraphQL, and mutation of built-in Project workflow enabled state are not exposed.
-    Tool Capability != Role Authority.
-  version: 2.3.2
+    Optimized for Architecture delivery workflows under the 30-operation Custom GPT limit. Supports repository discovery/content,
+    branches and rules, commit history/comparison, issues, native Sub-issues, labels, Issue/PR conversation comments, pull
+    requests and native review inspection, CI check evidence, plus an explicit allowlist of Projects v2 operations including
+    fields, items, views, workflows, archiving, and ordering. Destructive repository operations, pull-request merge, arbitrary
+    GraphQL, and mutation of built-in Project workflow enabled state are not exposed. Tool Capability != Role Authority.
+  version: 2.4.0
 servers:
 - url: https://api.github.com
   description: GitHub API
@@ -384,41 +384,6 @@ paths:
                   $ref: '#/components/schemas/RepositoryRule'
         '404':
           description: Repository not found or inaccessible
-  /repos/{owner}/{repo}/branches/{branch}/protection:
-    get:
-      operationId: getBranchProtection
-      summary: Get branch protection
-      description: Read-only. Returns classic branch protection settings for the named branch. Requires repository Administration
-        permission (read) for private repositories.
-      parameters:
-      - name: owner
-        in: path
-        required: true
-        description: GitHub username or organization.
-        schema:
-          type: string
-      - name: repo
-        in: path
-        required: true
-        description: Repository name without .git.
-        schema:
-          type: string
-      - name: branch
-        in: path
-        required: true
-        description: Branch name without wildcard characters.
-        schema:
-          type: string
-          minLength: 1
-      responses:
-        '200':
-          description: Branch protection settings
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BranchProtection'
-        '404':
-          description: Branch is not protected, or resource not found/inaccessible
   /repos/{owner}/{repo}/commits:
     get:
       operationId: listCommits
@@ -605,95 +570,6 @@ paths:
           description: Internal GitHub error
         '503':
           description: Service unavailable
-  /repos/{owner}/{repo}/tags:
-    get:
-      operationId: listTags
-      summary: List repository tags
-      description: Read-only. Lists Git tags and the commit each tag references.
-      parameters:
-      - name: owner
-        in: path
-        required: true
-        description: GitHub username or organization.
-        schema:
-          type: string
-      - name: repo
-        in: path
-        required: true
-        description: Repository name without .git.
-        schema:
-          type: string
-      - name: per_page
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 100
-          default: 30
-      - name: page
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          default: 1
-      responses:
-        '200':
-          description: Repository tags
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/RepositoryTag'
-        '404':
-          description: Repository not found or inaccessible
-  /repos/{owner}/{repo}/releases:
-    get:
-      operationId: listReleases
-      summary: List repository releases
-      description: Read-only. Lists GitHub releases. Regular Git tags without releases are not included; use listTags for
-        the complete tag inventory.
-      parameters:
-      - name: owner
-        in: path
-        required: true
-        description: GitHub username or organization.
-        schema:
-          type: string
-      - name: repo
-        in: path
-        required: true
-        description: Repository name without .git.
-        schema:
-          type: string
-      - name: per_page
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          maximum: 100
-          default: 30
-      - name: page
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 1
-          default: 1
-      responses:
-        '200':
-          description: Repository releases
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Release'
-        '404':
-          description: Repository not found or inaccessible
   /repos/{owner}/{repo}/issues:
     get:
       operationId: listIssues
@@ -926,41 +802,6 @@ paths:
           description: Issue or repository not found
         '422':
           description: Validation failed
-  /repos/{owner}/{repo}/issues/{issue_number}/parent:
-    get:
-      operationId: getParentIssue
-      summary: Get the parent issue of a sub-issue
-      parameters:
-      - name: owner
-        in: path
-        required: true
-        description: GitHub username or organization.
-        schema:
-          type: string
-      - name: repo
-        in: path
-        required: true
-        description: Repository name without .git.
-        schema:
-          type: string
-      - name: issue_number
-        in: path
-        required: true
-        description: Issue number.
-        schema:
-          type: integer
-          minimum: 1
-      responses:
-        '200':
-          description: Parent issue
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Issue'
-        '404':
-          description: Issue or parent not found
-        '410':
-          description: Gone
   /repos/{owner}/{repo}/issues/{issue_number}/sub_issues:
     get:
       operationId: listSubIssues
@@ -1376,30 +1217,6 @@ paths:
                   $ref: '#/components/schemas/PullRequestFile'
         '404':
           description: Pull request or repository not found
-  /orgs/{org}/issue-fields:
-    get:
-      operationId: listOrganizationIssueFields
-      summary: List organization issue fields and their options
-      description: Read-only metadata for organization-level Issue Fields. Kept separate from Projects v2 custom fields.
-      parameters:
-      - name: org
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Organization issue fields
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/OrganizationIssueField'
-        '403':
-          description: Forbidden
-        '404':
-          description: Organization not found or feature inaccessible
   /graphql:
     post:
       operationId: executeAllowedProjectV2Operation
@@ -1423,6 +1240,211 @@ paths:
           description: Authentication or permission error
         '403':
           description: Forbidden
+  /repos/{owner}/{repo}/labels:
+    get:
+      operationId: listRepositoryLabels
+      summary: List repository labels
+      description: Read-only. Lists repository labels so workflow classification and execution-route labels can be inspected
+        before use. Tool capability does not authorize changing routing.
+      parameters:
+      - &id001
+        name: owner
+        in: path
+        required: true
+        description: GitHub username or organization.
+        schema:
+          type: string
+      - &id002
+        name: repo
+        in: path
+        required: true
+        description: Repository name without .git.
+        schema:
+          type: string
+      - &id003
+        name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - &id004
+        name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      responses:
+        '200':
+          description: Repository labels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Label'
+        '404':
+          description: Repository not found or inaccessible
+  /repos/{owner}/{repo}/issues/{issue_number}/comments:
+    get:
+      operationId: listIssueComments
+      summary: List Issue or pull-request conversation comments
+      description: Read-only. Returns top-level conversation comments for an Issue or Pull Request. Useful for operational
+        context, recorded human decisions, and review discussion.
+      parameters:
+      - *id001
+      - *id002
+      - name: issue_number
+        in: path
+        required: true
+        description: Issue or pull-request number.
+        schema:
+          type: integer
+          minimum: 1
+      - *id003
+      - *id004
+      responses:
+        '200':
+          description: Conversation comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IssueComment'
+        '404':
+          description: Issue, pull request, or repository not found
+    post:
+      operationId: createIssueComment
+      summary: Create an Issue or pull-request conversation comment
+      description: Create a top-level conversation comment on an Issue or Pull Request. Use only to record information within
+        the active Role/authority; a comment does not manufacture approval, review acceptance, validation sufficiency, or
+        another gate result.
+      parameters:
+      - *id001
+      - *id002
+      - name: issue_number
+        in: path
+        required: true
+        description: Issue or pull-request number.
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+              required:
+              - body
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueComment'
+        '403':
+          description: Forbidden
+        '404':
+          description: Issue, pull request, or repository not found
+        '422':
+          description: Validation failed or secondary rate limit
+  /repos/{owner}/{repo}/pulls/{pull_number}/reviews:
+    get:
+      operationId: listPullRequestReviews
+      summary: List pull-request reviews
+      description: Read-only. Lists native GitHub pull-request reviews and their states. Review records are evidence/context
+        only; their semantic authority is resolved by project policy.
+      parameters:
+      - *id001
+      - *id002
+      - name: pull_number
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - *id003
+      - *id004
+      responses:
+        '200':
+          description: Pull-request reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PullRequestReview'
+        '404':
+          description: Pull request or repository not found
+  /repos/{owner}/{repo}/commits/{ref}/check-runs:
+    get:
+      operationId: listCheckRunsForRef
+      summary: List check runs for a commit or ref
+      description: Read-only. Lists GitHub check runs for a commit SHA, branch, or tag. Useful as validation and merge-gate
+        evidence; passing checks do not by themselves establish semantic approval or Work completion.
+      parameters:
+      - *id001
+      - *id002
+      - name: ref
+        in: path
+        required: true
+        description: Commit SHA, branch name, or tag name.
+        schema:
+          type: string
+          minLength: 1
+      - name: check_name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - queued
+          - in_progress
+          - completed
+      - name: filter
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - latest
+          - all
+          default: latest
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 30
+      - *id004
+      responses:
+        '200':
+          description: Check runs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckRunsResponse'
+        '404':
+          description: Repository or reference not found
 components:
   schemas:
     User:
@@ -1704,46 +1726,6 @@ components:
           description: Numeric database ID of the child issue.
       required:
       - sub_issue_id
-    IssueFieldOption:
-      type: object
-      additionalProperties: true
-      properties:
-        id:
-          type: integer
-        node_id:
-          type: string
-        name:
-          type: string
-        description:
-          type:
-          - string
-          - 'null'
-        color:
-          type: string
-    OrganizationIssueField:
-      type: object
-      additionalProperties: true
-      properties:
-        id:
-          type: integer
-        node_id:
-          type: string
-        name:
-          type: string
-        description:
-          type:
-          - string
-          - 'null'
-        data_type:
-          type: string
-        options:
-          type: array
-          items:
-            $ref: '#/components/schemas/IssueFieldOption'
-        created_at:
-          type: string
-        updated_at:
-          type: string
     ProjectV2FieldValueInput:
       type: object
       additionalProperties: false
@@ -2022,62 +2004,6 @@ components:
           - object
           - 'null'
           additionalProperties: true
-    BranchProtection:
-      type: object
-      additionalProperties: true
-      properties:
-        url:
-          type: string
-        required_status_checks:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        enforce_admins:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        required_pull_request_reviews:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        restrictions:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        required_linear_history:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        allow_force_pushes:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        allow_deletions:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        required_conversation_resolution:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        lock_branch:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
-        allow_fork_syncing:
-          type:
-          - object
-          - 'null'
-          additionalProperties: true
     CommitParent:
       type: object
       additionalProperties: true
@@ -2193,69 +2119,6 @@ components:
           items:
             type: object
             additionalProperties: true
-    RepositoryTag:
-      type: object
-      additionalProperties: true
-      properties:
-        name:
-          type: string
-        commit:
-          type: object
-          additionalProperties: true
-          properties:
-            sha:
-              type: string
-            url:
-              type: string
-        zipball_url:
-          type: string
-        tarball_url:
-          type: string
-        node_id:
-          type: string
-    Release:
-      type: object
-      additionalProperties: true
-      properties:
-        id:
-          type: integer
-        node_id:
-          type: string
-        url:
-          type: string
-        html_url:
-          type: string
-        tag_name:
-          type: string
-        target_commitish:
-          type: string
-        name:
-          type:
-          - string
-          - 'null'
-        body:
-          type:
-          - string
-          - 'null'
-        draft:
-          type: boolean
-        prerelease:
-          type: boolean
-        immutable:
-          type: boolean
-        created_at:
-          type: string
-        published_at:
-          type:
-          - string
-          - 'null'
-        author:
-          $ref: '#/components/schemas/User'
-        assets:
-          type: array
-          items:
-            type: object
-            additionalProperties: true
     ProjectV2ViewConfigurationInput:
       type: object
       additionalProperties: false
@@ -2265,3 +2128,113 @@ components:
           items:
             type: string
           description: Ordered ProjectV2 field node IDs visible in the view.
+    Label:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        default:
+          type: boolean
+    IssueComment:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        html_url:
+          type: string
+        issue_url:
+          type: string
+        body:
+          type:
+          - string
+          - 'null'
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    PullRequestReview:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        html_url:
+          type: string
+        body:
+          type:
+          - string
+          - 'null'
+        state:
+          type: string
+        submitted_at:
+          type:
+          - string
+          - 'null'
+        commit_id:
+          type:
+          - string
+          - 'null'
+        user:
+          $ref: '#/components/schemas/User'
+    CheckRun:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        conclusion:
+          type:
+          - string
+          - 'null'
+        started_at:
+          type:
+          - string
+          - 'null'
+        completed_at:
+          type:
+          - string
+          - 'null'
+        details_url:
+          type:
+          - string
+          - 'null'
+        html_url:
+          type:
+          - string
+          - 'null'
+        head_sha:
+          type: string
+    CheckRunsResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        total_count:
+          type: integer
+        check_runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckRun'
